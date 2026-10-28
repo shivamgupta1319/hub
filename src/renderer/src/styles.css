@@ -1,0 +1,222 @@
+/* Design tokens — see docs/design.md */
+:root {
+  color-scheme: light dark;
+
+  --bg: #f3f5f7;
+  --surface: #ffffff;
+  --border: #d9dee4;
+  --text: #1b1f24;
+  --text-muted: #5a6370;
+  --accent: #0f7b6c;
+  --accent-strong: #0b6458;
+  --accent-text: #ffffff;
+  --accent-soft: #dcefeb;
+  --danger: #c23b3b;
+  --focus: #1f8f7e;
+
+  --dock-bg: #23282e;
+  --dock-item: #343a42;
+  --dock-icon: #c6ccd3;
+  --dock-active: #ffffff;
+
+  --font: 'IBM Plex Sans', 'Ubuntu', system-ui, sans-serif;
+  --text-sm: 0.8125rem;
+  --text-base: 1rem;
+  --text-lg: 1.25rem;
+  --text-xl: 1.5625rem;
+
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-12: 48px;
+
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+
+  --dur-micro: 120ms;
+  --dur-ui: 200ms;
+  --ease: cubic-bezier(0.2, 0, 0, 1);
+
+  --dock-width: 64px;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #16191d;
+    --surface: #1e2227;
+    --border: #333941;
+    --text: #e6e9ed;
+    --text-muted: #9aa3ad;
+    --accent: #3fb8a3;
+    --accent-strong: #5ccab6;
+    --accent-text: #0c1f1b;
+    --accent-soft: #1d3833;
+    --danger: #ef7a7a;
+    --focus: #5ccab6;
+
+    --dock-bg: #0f1215;
+    --dock-item: #262b31;
+  }
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font);
+  font-size: var(--text-base);
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+h1,
+h2,
+p {
+  margin: 0;
+}
+
+button {
+  font: inherit;
+  color: inherit;
+}
+
+:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    transition-duration: 0ms !important;
+    animation-duration: 0ms !important;
+  }
+}
+
+/* Shell */
+.shell {
+  display: grid;
+  grid-template-columns: var(--dock-width) minmax(0, 1fr);
+  height: 100%;
+}
+
+.content {
+  min-width: 0;
+  overflow-y: auto;
+}
+
+/* Dock */
+.sidebar {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-3) 0;
+  background: var(--dock-bg);
+  overflow-y: auto;
+  scrollbar-width: none;
+}
+
+.dock-item {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border: 0;
+  border-radius: var(--radius-md);
+  background: transparent;
+  color: var(--dock-icon);
+  cursor: pointer;
+  transition:
+    background var(--dur-micro) var(--ease),
+    color var(--dur-micro) var(--ease);
+}
+
+.dock-item:hover {
+  background: var(--dock-item);
+  color: var(--dock-active);
+}
+
+.dock-item.is-active {
+  background: var(--dock-item);
+  color: var(--dock-active);
+}
+
+/* Active marker: a short bar on the dock's left edge, like a GNOME dock pip. */
+.dock-item.is-active::before {
+  content: '';
+  position: absolute;
+  left: -10px;
+  top: 12px;
+  bottom: 12px;
+  width: 3px;
+  border-radius: 0 3px 3px 0;
+  background: var(--accent);
+}
+
+.dock-divider {
+  width: 28px;
+  height: 1px;
+  margin: var(--space-1) 0;
+  background: var(--dock-item);
+}
+
+.dock-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* Dashboard */
+.dashboard {
+  max-width: 1120px;
+  margin: 0 auto;
+  padding: var(--space-6) var(--space-4) var(--space-12);
+}
+
+.dashboard-header h1 {
+  font-size: var(--text-xl);
+  font-weight: 600;
+  line-height: 1.2;
+  letter-spacing: -0.01em;
+}
+
+.empty {
+  max-width: 34rem;
+  margin-top: var(--space-12);
+}
+
+.empty h2 {
+  font-size: var(--text-lg);
+  font-weight: 500;
+}
+
+.empty p {
+  margin-top: var(--space-2);
+  color: var(--text-muted);
+}
+
+@media (min-width: 768px) {
+  .dashboard {
+    padding: var(--space-8) var(--space-8) var(--space-12);
+  }
+}
