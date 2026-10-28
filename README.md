@@ -21,7 +21,7 @@ desktop app for Ubuntu. Add a site once, then switch between them from the sideb
 
 ## Install
 
-Build the packages with `npm run dist` (see [Build from source](#build-from-source)), then:
+Download the `.deb` or AppImage from the [latest release](https://github.com/shivamgupta1319/hub/releases/latest), or build them with `npm run dist` (see [Build from source](#build-from-source)). Then:
 
 - **.deb** (Ubuntu, Debian): `sudo apt install ./hub_0.1.0_amd64.deb`, then open Hub from the
   app grid.
