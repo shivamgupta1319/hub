@@ -5,16 +5,23 @@ import { Dialog } from './Dialog'
 
 interface Props {
   site: Site
+  /** Open straight on the remove confirmation (from the sidebar's right-click menu). */
+  startWithRemove?: boolean
   onClose: () => void
   onRemoved: (name: string) => void
 }
 
-export function EditSiteDialog({ site, onClose, onRemoved }: Props): React.JSX.Element {
+export function EditSiteDialog({
+  site,
+  startWithRemove = false,
+  onClose,
+  onRemoved
+}: Props): React.JSX.Element {
   const [name, setName] = useState(site.name)
   const [url, setUrl] = useState(site.url)
   const [error, setError] = useState<string>()
   const [pending, setPending] = useState(false)
-  const [confirmRemove, setConfirmRemove] = useState(false)
+  const [confirmRemove, setConfirmRemove] = useState(startWithRemove)
   const nameId = useId()
   const urlId = useId()
   const errorId = useId()
@@ -57,7 +64,12 @@ export function EditSiteDialog({ site, onClose, onRemoved }: Props): React.JSX.E
           </p>
         )}
         <div className="dialog-actions">
-          <button type="button" className="btn" onClick={() => setConfirmRemove(false)} autoFocus>
+          <button
+            type="button"
+            className="btn"
+            onClick={() => (startWithRemove ? onClose() : setConfirmRemove(false))}
+            autoFocus
+          >
             Keep it
           </button>
           <button

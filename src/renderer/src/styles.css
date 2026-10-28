@@ -347,7 +347,7 @@ button {
 /* Site launcher grid */
 .site-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(124px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(112px, 1fr));
   gap: var(--space-2);
   margin: var(--space-8) 0 0;
   padding: 0;

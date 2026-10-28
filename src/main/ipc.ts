@@ -16,12 +16,17 @@ const patch = z
   .partial()
 const id = z.string().min(1)
 
+/** Sends the full site list to the UI. */
+export function broadcastSites(store: SiteStore, ui: WebContents | undefined): void {
+  ui?.send(IPC.sitesChanged, store.list())
+}
+
 export function registerIpc(
   store: SiteStore,
   manager: () => SiteManager | undefined,
   ui: () => WebContents | undefined
 ): void {
-  const broadcast = (): void => ui()?.send(IPC.sitesChanged, store.list())
+  const broadcast = (): void => broadcastSites(store, ui())
 
   ipcMain.handle(IPC.appInfo, (): AppInfo => ({ version: app.getVersion() }))
   ipcMain.handle(IPC.sitesList, () => store.list())
@@ -46,11 +51,11 @@ export function registerIpc(
     return result
   })
 
-  ipcMain.handle(IPC.sitesRemove, (_e, siteId: unknown) => {
+  ipcMain.handle(IPC.sitesRemove, async (_e, siteId: unknown) => {
     const parsed = id.parse(siteId)
     const removed = store.remove(parsed)
     if (removed) {
-      manager()?.close(parsed)
+      await manager()?.forget(parsed)
       broadcast()
     }
     return removed
@@ -64,6 +69,7 @@ export function registerIpc(
   ipcMain.handle(IPC.viewOpen, (_e, siteId: unknown) => manager()?.open(id.parse(siteId)))
   ipcMain.handle(IPC.viewHome, () => manager()?.home())
   ipcMain.handle(IPC.viewReload, (_e, siteId: unknown) => manager()?.reload(id.parse(siteId)))
+  ipcMain.handle(IPC.siteMenu, (_e, siteId: unknown) => manager()?.showSiteMenu(id.parse(siteId)))
   ipcMain.handle(IPC.viewOverlay, (_e, open: unknown) =>
     manager()?.setOverlay(z.boolean().parse(open))
   )

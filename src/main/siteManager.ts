@@ -1,7 +1,16 @@
-import { desktopCapturer, shell, WebContentsView, type BrowserWindow, type Session } from 'electron'
-import type { ViewStatus } from '@shared/ipc'
+import {
+  desktopCapturer,
+  session,
+  shell,
+  WebContentsView,
+  type BrowserWindow,
+  type Session
+} from 'electron'
+import type { SiteCommand, ViewStatus } from '@shared/ipc'
 import { popupDecision } from '@shared/links'
 import type { Site } from '@shared/site'
+import { fetchIcon } from './favicon'
+import { attachPageMenu, showSiteMenu } from './menus'
 import type { SiteStore } from './store'
 
 /** Must match --dock-width in the renderer. */
@@ -20,6 +29,9 @@ const ALLOWED_PERMISSIONS = new Set([
 export interface ManagerEvents {
   active(id: string | null): void
   status(status: ViewStatus): void
+  /** A site's saved details changed (e.g. its icon). */
+  sitesChanged(): void
+  command(id: string, command: SiteCommand): void
 }
 
 /** Each site gets its own persistent session, so logins never leak between sites. */
@@ -87,6 +99,22 @@ export class SiteManager {
     this.sync()
   }
 
+  showSiteMenu(id: string): void {
+    showSiteMenu(this.win, {
+      pageUrl: this.views.get(id)?.webContents.getURL() || this.store.get(id)?.url,
+      onReload: () => this.reload(id),
+      onCommand: (command) => this.events.command(id, command)
+    })
+  }
+
+  /** Closes a site's page and deletes its cookies and storage, signing it out. */
+  async forget(id: string): Promise<void> {
+    this.close(id)
+    const ses = session.fromPartition(partitionFor(id))
+    await ses.clearStorageData()
+    await ses.clearCache()
+  }
+
   /** Closes a site's page. Its session (and login) survives. */
   close(id: string): void {
     const view = this.views.get(id)
@@ -133,6 +161,37 @@ export class SiteManager {
         if (popupDecision(url, siteUrl()) === 'external') void shell.openExternal(url)
         return { action: 'deny' }
       })
+    })
+
+    attachPageMenu(wc, this.win)
+
+    // Save the icon once per full navigation (e.g. sign-in page → inbox). Updates within a page
+    // are usually unread-count variants, which belong in a badge rather than the saved icon.
+    let iconSaved = false
+    wc.on('did-navigate', () => {
+      iconSaved = false
+    })
+    const saveIcon = (url: string): void => {
+      if (iconSaved) return
+      iconSaved = true
+      void fetchIcon(wc.session, url).then((dataUrl) => {
+        if (dataUrl && this.store.setIcon(id, dataUrl)) this.events.sitesChanged()
+        else if (!dataUrl) iconSaved = false
+      })
+    }
+    wc.on('page-favicon-updated', (_e, favicons) => {
+      const [first] = favicons
+      if (first) saveIcon(first)
+    })
+    wc.on('did-finish-load', () => {
+      // Pages that declare no icon usually still serve one at the conventional path.
+      if (!iconSaved && !this.store.get(id)?.iconDataUrl) {
+        try {
+          saveIcon(new URL('/favicon.ico', wc.getURL()).href)
+        } catch {
+          // not an http(s) page; nothing to fetch
+        }
+      }
     })
 
     wc.on('did-start-loading', () => this.setStatus({ id, state: 'loading' }))

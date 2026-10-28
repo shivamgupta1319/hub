@@ -70,7 +70,16 @@ await app.close()
 
 // --- Site pages, served by a local server so the test needs no internet ---
 const { createServer } = await import('node:http')
+// 1×1 PNG served as every page's favicon.
+const PNG = Buffer.from(
+  'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR4nGNg+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==',
+  'base64'
+)
 const server = createServer((req, res) => {
+  if (req.url === '/favicon.ico') {
+    res.setHeader('content-type', 'image/png')
+    return res.end(PNG)
+  }
   res.setHeader('content-type', 'text/html')
   res.end(`<!doctype html><title>Page ${req.url}</title><h1>Hello from ${req.url}</h1>`)
 })
@@ -124,6 +133,28 @@ await page.click('[aria-label="All sites"]')
 await new Promise((r) => setTimeout(r, 300))
 assert.deepEqual(await visibleSiteUrls(), [])
 console.log('✓ Home hides every site page')
+
+await page.waitForSelector('.site-grid img')
+console.log('✓ saves the site’s favicon and shows it')
+
+// Remove /two from the dashboard and check its session was wiped.
+const { readFileSync } = await import('node:fs')
+const sitesOnDisk = () => JSON.parse(readFileSync(join(profile, 'sites.json'), 'utf8')).sites
+const two = sitesOnDisk().find((s) => s.url.endsWith('/two'))
+await inSite('/two', "document.cookie = 'who=two; path=/'")
+const cookiesFor = (siteId) =>
+  app.evaluate(
+    ({ session }, siteId) => session.fromPartition(`persist:site-${siteId}`).cookies.get({}),
+    siteId
+  )
+assert.equal((await cookiesFor(two.id)).length, 1)
+await page.click(`[aria-label="Edit ${two.name}"] >> nth=1`)
+await page.click('dialog >> text=Remove…')
+await page.click('dialog >> text=Remove site')
+await page.waitForSelector('dialog', { state: 'detached' })
+assert.equal((await cookiesFor(two.id)).length, 0)
+assert.equal(sitesOnDisk().length, 2)
+console.log('✓ removing a site deletes its cookies')
 
 server.close()
 await page.click(`.dock-list button >> nth=1`)

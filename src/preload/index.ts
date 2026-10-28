@@ -1,5 +1,5 @@
 import { contextBridge, ipcRenderer, type IpcRendererEvent } from 'electron'
-import { IPC, type HubApi, type ViewStatus } from '@shared/ipc'
+import { IPC, type HubApi, type SiteCommand, type ViewStatus } from '@shared/ipc'
 import type { Site } from '@shared/site'
 
 const api: HubApi = {
@@ -30,6 +30,13 @@ const api: HubApi = {
       const handler = (_e: IpcRendererEvent, status: ViewStatus): void => listener(status)
       ipcRenderer.on(IPC.viewStatus, handler)
       return () => ipcRenderer.off(IPC.viewStatus, handler)
+    },
+    showSiteMenu: (id) => ipcRenderer.invoke(IPC.siteMenu, id),
+    onSiteCommand: (listener) => {
+      const handler = (_e: IpcRendererEvent, id: string, command: SiteCommand): void =>
+        listener(id, command)
+      ipcRenderer.on(IPC.siteCommand, handler)
+      return () => ipcRenderer.off(IPC.siteCommand, handler)
     }
   }
 }

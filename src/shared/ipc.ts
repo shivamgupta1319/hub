@@ -14,8 +14,13 @@ export const IPC = {
   viewReload: 'view:reload',
   viewOverlay: 'view:overlay',
   viewActive: 'view:active',
-  viewStatus: 'view:status'
+  viewStatus: 'view:status',
+  siteMenu: 'site:menu',
+  siteCommand: 'site:command'
 } as const
+
+/** Actions from a sidebar icon's right-click menu that the UI carries out. */
+export type SiteCommand = 'edit' | 'remove'
 
 /** Load state of a site's page. `error` and `crashed` hide the page so the UI can explain. */
 export interface ViewStatus {
@@ -51,5 +56,8 @@ export interface HubApi {
     /** Fires with the visible site's id, or null for the dashboard. */
     onActive(listener: (id: string | null) => void): () => void
     onStatus(listener: (status: ViewStatus) => void): () => void
+    /** Shows the native right-click menu for a sidebar icon. */
+    showSiteMenu(id: string): Promise<void>
+    onSiteCommand(listener: (id: string, command: SiteCommand) => void): () => void
   }
 }

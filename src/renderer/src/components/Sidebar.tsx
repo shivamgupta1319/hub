@@ -37,6 +37,10 @@ export function Sidebar({ sites, activeId, statuses }: Props): React.JSX.Element
                 aria-current={active ? 'page' : undefined}
                 title={site.name}
                 onClick={() => void window.hub.view.open(site.id)}
+                onContextMenu={(e) => {
+                  e.preventDefault()
+                  void window.hub.view.showSiteMenu(site.id)
+                }}
               >
                 <SiteAvatar site={site} size={30} />
                 {state === 'loading' && <span className="dock-loading" aria-hidden="true" />}

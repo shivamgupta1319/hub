@@ -2,7 +2,7 @@ import { join } from 'node:path'
 import { app, BrowserWindow, nativeTheme, shell } from 'electron'
 import { IPC } from '@shared/ipc'
 import { cleanUserAgent } from '@shared/links'
-import { registerIpc } from './ipc'
+import { broadcastSites, registerIpc } from './ipc'
 import { SiteManager } from './siteManager'
 import { SiteStore } from './store'
 
@@ -72,7 +72,9 @@ if (!app.requestSingleInstanceLock()) {
     const ui = mainWindow.webContents
     manager = new SiteManager(mainWindow, store, {
       active: (id) => ui.send(IPC.viewActive, id),
-      status: (status) => ui.send(IPC.viewStatus, status)
+      status: (status) => ui.send(IPC.viewStatus, status),
+      sitesChanged: () => broadcastSites(store, ui),
+      command: (id, command) => ui.send(IPC.siteCommand, id, command)
     })
   })
 
