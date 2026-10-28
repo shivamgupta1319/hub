@@ -5,9 +5,11 @@ import { IPC } from '@shared/ipc'
 import { cleanUserAgent } from '@shared/links'
 import type { Settings } from '@shared/settings'
 import icon from '../../resources/icon.png?asset'
+import iconSvg from '../../resources/icon.svg?asset'
 import trayIcon from '../../resources/tray.png?asset'
 import { buildAppMenu } from './appMenu'
 import { HIDDEN_FLAG, setLaunchAtLogin } from './autostart'
+import { syncLauncherEntry } from './desktopIntegration'
 import { registerIpc, registerSettingsIpc } from './ipc'
 import { SettingsStore } from './settings'
 import { SiteManager } from './siteManager'
@@ -89,6 +91,18 @@ if (!app.requestSingleInstanceLock()) {
     const store = new SiteStore(join(userData, 'sites.json'))
     const settings = new SettingsStore(join(userData, 'settings.json'))
     app.userAgentFallback = cleanUserAgent(app.userAgentFallback)
+
+    // Gives the dock its Hub icon. The .deb ships its own launcher entry, so only the AppImage
+    // and dev runs install one; under the .deb, Hub's own copy is removed so the system one wins.
+    try {
+      const fromDeb = app.isPackaged && !process.env['APPIMAGE']
+      syncLauncherEntry(fromDeb ? null : launchCommand(), [
+        { file: icon, size: '256x256', ext: 'png' },
+        { file: iconSvg, size: 'scalable', ext: 'svg' }
+      ])
+    } catch (err) {
+      console.error('could not install the launcher entry', err)
+    }
 
     // Started at login: wait in the tray until the person opens Hub.
     const startHidden = process.argv.includes(HIDDEN_FLAG)

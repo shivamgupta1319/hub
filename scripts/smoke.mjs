@@ -9,7 +9,14 @@ import { _electron as electron } from 'playwright'
 const profile = mkdtempSync(join(tmpdir(), 'hub-smoke-'))
 // A temp XDG config dir keeps 'Start at login' from touching the real ~/.config/autostart.
 const xdgConfig = mkdtempSync(join(tmpdir(), 'hub-smoke-xdg-'))
-const env = { ...process.env, HUB_USER_DATA: profile, XDG_CONFIG_HOME: xdgConfig }
+// …and a temp XDG data dir keeps the dock launcher entry out of the real ~/.local/share.
+const xdgData = mkdtempSync(join(tmpdir(), 'hub-smoke-data-'))
+const env = {
+  ...process.env,
+  HUB_USER_DATA: profile,
+  XDG_CONFIG_HOME: xdgConfig,
+  XDG_DATA_HOME: xdgData
+}
 delete env.ELECTRON_RUN_AS_NODE
 
 async function launch(extraEnv = {}) {
@@ -304,6 +311,12 @@ console.log('✓ dragging an icon reorders the sidebar, and Ctrl+1 follows the n
 
 // --- Settings and close to tray ---
 const { existsSync } = await import('node:fs')
+assert.match(
+  readFileSync(join(xdgData, 'applications', 'hub.desktop'), 'utf8'),
+  /StartupWMClass=hub/
+)
+assert.ok(existsSync(join(xdgData, 'icons/hicolor/scalable/apps/hub.svg')))
+console.log('✓ installs a launcher entry and icon so the dock shows Hub’s icon')
 await shortcut('Alt+Home')
 await page.click('[aria-label="Settings"]')
 await page.waitForSelector('dialog[aria-label="Settings"] select')

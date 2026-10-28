@@ -28,6 +28,9 @@ Build the packages with `npm run dist` (see [Build from source](#build-from-sour
 - **AppImage**: `chmod +x Hub-0.1.0-x86_64.AppImage && ./Hub-0.1.0-x86_64.AppImage`. On
   Ubuntu 22.04+ AppImages need `sudo apt install libfuse2t64` (or `libfuse2` on 22.04).
 
+On first launch the AppImage adds Hub to your app grid (in `~/.local/share/applications`),
+which is also what gives it the Hub icon in the Ubuntu dock. The .deb installs this for you.
+
 The tray icon uses AppIndicator, which Ubuntu enables by default. Your sites are saved in
 `~/.config/hub/`.
 

@@ -19,7 +19,8 @@ if (process.env.SHOOT_SEED) copyFileSync(process.env.SHOOT_SEED, join(profile, '
 const env = {
   ...process.env,
   HUB_USER_DATA: profile,
-  XDG_CONFIG_HOME: mkdtempSync(join(tmpdir(), 'hub-shoot-xdg-'))
+  XDG_CONFIG_HOME: mkdtempSync(join(tmpdir(), 'hub-shoot-xdg-')),
+  XDG_DATA_HOME: mkdtempSync(join(tmpdir(), 'hub-shoot-data-'))
 }
 delete env.ELECTRON_RUN_AS_NODE
 const app = await electron.launch({ args: ['--ozone-platform=x11', '.'], env })
