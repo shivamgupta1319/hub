@@ -3,3 +3,4 @@ out/
 dist/
 .ui-shots/
 *.log
+*.tsbuildinfo

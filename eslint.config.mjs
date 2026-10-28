@@ -12,6 +12,11 @@ export default tseslint.config(
     languageOptions: { globals: globals.node }
   },
   {
+    // Tests index into arrays they just built; asserting non-null there is clearer than guards.
+    files: ['**/*.test.ts'],
+    rules: { '@typescript-eslint/no-non-null-assertion': 'off' }
+  },
+  {
     files: ['src/renderer/**'],
     languageOptions: { globals: globals.browser },
     plugins: { 'react-hooks': reactHooks },

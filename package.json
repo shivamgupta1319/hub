@@ -15,7 +15,8 @@
     "lint": "eslint .",
     "format": "prettier --write .",
     "test": "vitest run",
-    "shoot": "electron-vite build && node scripts/shoot.mjs"
+    "shoot": "electron-vite build && node scripts/shoot.mjs",
+    "smoke": "electron-vite build && node scripts/smoke.mjs"
   },
   "dependencies": {
     "@fontsource/ibm-plex-sans": "^5.2.8",

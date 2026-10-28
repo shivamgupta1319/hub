@@ -1,6 +1,7 @@
 import { join } from 'node:path'
-import { app, BrowserWindow, ipcMain, nativeTheme, shell } from 'electron'
-import { IPC, type AppInfo } from '@shared/ipc'
+import { app, BrowserWindow, nativeTheme, shell } from 'electron'
+import { registerIpc } from './ipc'
+import { SiteStore } from './store'
 
 // Matches --bg in the renderer so the window doesn't flash white on open.
 const BG_LIGHT = '#f3f5f7'
@@ -39,7 +40,11 @@ function createWindow(): BrowserWindow {
   return win
 }
 
-ipcMain.handle(IPC.appInfo, (): AppInfo => ({ version: app.getVersion() }))
+// Lets tests and screenshot runs use a throwaway profile.
+const userDataOverride = process.env['HUB_USER_DATA']
+if (userDataOverride) app.setPath('userData', userDataOverride)
+
+let mainWindow: BrowserWindow | undefined
 
 if (!app.requestSingleInstanceLock()) {
   app.quit()
@@ -52,9 +57,11 @@ if (!app.requestSingleInstanceLock()) {
   })
 
   void app.whenReady().then(() => {
-    createWindow()
+    const store = new SiteStore(join(app.getPath('userData'), 'sites.json'))
+    registerIpc(store, () => mainWindow?.webContents)
+    mainWindow = createWindow()
     app.on('activate', () => {
-      if (BrowserWindow.getAllWindows().length === 0) createWindow()
+      if (BrowserWindow.getAllWindows().length === 0) mainWindow = createWindow()
     })
   })
 

@@ -1,0 +1,53 @@
+{
+  "version": 1,
+  "sites": [
+    {
+      "id": "1",
+      "name": "Gmail",
+      "url": "https://mail.google.com/",
+      "keepAlive": true,
+      "notifications": true,
+      "createdAt": 1
+    },
+    {
+      "id": "2",
+      "name": "WhatsApp",
+      "url": "https://web.whatsapp.com/",
+      "keepAlive": true,
+      "notifications": true,
+      "createdAt": 2
+    },
+    {
+      "id": "3",
+      "name": "GitHub",
+      "url": "https://github.com/",
+      "keepAlive": false,
+      "notifications": true,
+      "createdAt": 3
+    },
+    {
+      "id": "4",
+      "name": "Calendar",
+      "url": "https://calendar.google.com/",
+      "keepAlive": false,
+      "notifications": true,
+      "createdAt": 4
+    },
+    {
+      "id": "5",
+      "name": "Linear — Product Engineering Workspace",
+      "url": "https://linear.app/acme-product-engineering/",
+      "keepAlive": false,
+      "notifications": true,
+      "createdAt": 5
+    },
+    {
+      "id": "6",
+      "name": "Grafana",
+      "url": "http://localhost:3000/",
+      "keepAlive": false,
+      "notifications": true,
+      "createdAt": 6
+    }
+  ]
+}
