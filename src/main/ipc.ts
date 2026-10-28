@@ -1,4 +1,4 @@
-import { app, ipcMain, type WebContents } from 'electron'
+import { app, ipcMain } from 'electron'
 import { z } from 'zod'
 import { IPC, type AppInfo } from '@shared/ipc'
 import type { SiteManager } from './siteManager'
@@ -16,18 +16,12 @@ const patch = z
   .partial()
 const id = z.string().min(1)
 
-/** Sends the full site list to the UI. */
-export function broadcastSites(store: SiteStore, ui: WebContents | undefined): void {
-  ui?.send(IPC.sitesChanged, store.list())
-}
-
 export function registerIpc(
   store: SiteStore,
   manager: () => SiteManager | undefined,
-  ui: () => WebContents | undefined
+  /** Called after any change to the saved sites. */
+  broadcast: () => void
 ): void {
-  const broadcast = (): void => broadcastSites(store, ui())
-
   ipcMain.handle(IPC.appInfo, (): AppInfo => ({ version: app.getVersion() }))
   ipcMain.handle(IPC.sitesList, () => store.list())
 

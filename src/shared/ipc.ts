@@ -20,8 +20,12 @@ export const IPC = {
   siteCommand: 'site:command',
   /** Sent by a site page when one of its notifications is clicked. */
   siteFocusRequest: 'site:focus-request',
-  viewBadge: 'view:badge'
+  viewBadge: 'view:badge',
+  uiCommand: 'ui:command'
 } as const
+
+/** Requests from the window menu (keyboard shortcuts) that the UI carries out. */
+export type UiCommand = 'quick-switch' | 'add-site' | 'settings'
 
 /** Actions from a sidebar icon's right-click menu that the UI carries out. */
 export type SiteCommand = 'edit' | 'remove'
@@ -52,6 +56,8 @@ export interface HubApi {
     /** Fires with the full list whenever it changes. Returns an unsubscribe function. */
     onChanged(listener: (sites: Site[]) => void): () => void
   }
+  /** Fires when a keyboard shortcut asks the UI to do something. */
+  onCommand(listener: (command: UiCommand) => void): () => void
   view: {
     /** Shows a site's page, loading it on first open. */
     open(id: string): Promise<void>

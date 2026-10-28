@@ -61,6 +61,9 @@ export function attachPageMenu(wc: WebContents, win: BrowserWindow): void {
 export function showSiteMenu(
   win: BrowserWindow,
   options: {
+    canMoveUp: boolean
+    canMoveDown: boolean
+    onMove: (step: -1 | 1) => void
     canSleep: boolean
     onSleep: () => void
     pageUrl: string | undefined
@@ -77,6 +80,9 @@ export function showSiteMenu(
       enabled: Boolean(pageUrl),
       click: () => pageUrl && void shell.openExternal(pageUrl)
     },
+    { type: 'separator' },
+    { label: 'Move up', enabled: options.canMoveUp, click: () => options.onMove(-1) },
+    { label: 'Move down', enabled: options.canMoveDown, click: () => options.onMove(1) },
     { type: 'separator' },
     { label: 'Edit…', click: () => options.onCommand('edit') },
     { label: 'Remove…', click: () => options.onCommand('remove') }

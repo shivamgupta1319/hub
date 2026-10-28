@@ -249,5 +249,53 @@ await inSleepSite('/chat', 'window.__hubFocusSite()')
 await page.waitForSelector('[aria-label="chat"][aria-current="page"]')
 console.log('✓ clicking a site’s notification brings that site forward')
 
+// --- Shortcuts, quick switcher and reordering ---
+// Playwright's key presses go straight to the page and skip native menu accelerators, so this
+// triggers the menu item bound to each shortcut instead.
+const shortcut = (accelerator) =>
+  app.evaluate(({ Menu }, accelerator) => {
+    const find = (items) => {
+      for (const item of items) {
+        if (item.accelerator === accelerator) return item
+        const inner = item.submenu && find(item.submenu.items)
+        if (inner) return inner
+      }
+    }
+    const item = find(Menu.getApplicationMenu().items)
+    if (!item) throw new Error(`no menu item for ${accelerator}`)
+    item.click()
+  }, accelerator)
+await page.click('[aria-label="All sites"]')
+await shortcut('CmdOrCtrl+Shift+K')
+await page.waitForSelector('dialog[aria-label="Go to site"]')
+await page.keyboard.type('do')
+await page.keyboard.press('Enter')
+await page.waitForSelector('dialog', { state: 'detached' })
+await page.waitForSelector('[aria-label="docs"][aria-current="page"]')
+console.log('✓ Ctrl+Shift+K opens the quick switcher; typing and Enter open a site')
+
+await shortcut('CmdOrCtrl+1')
+await page.waitForSelector('[aria-label="chat"][aria-current="page"]')
+await shortcut('Ctrl+Tab')
+await page.waitForSelector('[aria-label="docs"][aria-current="page"]')
+await shortcut('Alt+Home')
+await page.waitForSelector('[aria-label="All sites"][aria-current="page"]')
+console.log('✓ Ctrl+1, Ctrl+Tab and Alt+Home switch sites')
+
+await page.dragAndDrop('.dock-list li:nth-child(2)', '.dock-list li:nth-child(1)', {
+  targetPosition: { x: 20, y: 4 }
+})
+await page.waitForFunction(
+  () =>
+    globalThis.document.querySelector('.dock-list li button')?.getAttribute('aria-label') === 'docs'
+)
+const orderOnDisk = JSON.parse(
+  (await import('node:fs')).readFileSync(join(sleepProfile, 'sites.json'), 'utf8')
+).sites.map((s) => s.name)
+assert.deepEqual(orderOnDisk, ['docs', 'chat'])
+await shortcut('CmdOrCtrl+1')
+await page.waitForSelector('[aria-label="docs"][aria-current="page"]')
+console.log('✓ dragging an icon reorders the sidebar, and Ctrl+1 follows the new order')
+
 await app.close()
 sleepServer.close()

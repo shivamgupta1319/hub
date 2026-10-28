@@ -1,10 +1,15 @@
 import { contextBridge, ipcRenderer, type IpcRendererEvent } from 'electron'
-import { IPC, type HubApi, type SiteCommand, type ViewStatus } from '@shared/ipc'
+import { IPC, type HubApi, type SiteCommand, type UiCommand, type ViewStatus } from '@shared/ipc'
 import type { Badge } from '@shared/badges'
 import type { Site } from '@shared/site'
 
 const api: HubApi = {
   appInfo: () => ipcRenderer.invoke(IPC.appInfo),
+  onCommand: (listener) => {
+    const handler = (_e: IpcRendererEvent, command: UiCommand): void => listener(command)
+    ipcRenderer.on(IPC.uiCommand, handler)
+    return () => ipcRenderer.off(IPC.uiCommand, handler)
+  },
   sites: {
     list: () => ipcRenderer.invoke(IPC.sitesList),
     add: (input) => ipcRenderer.invoke(IPC.sitesAdd, input),

@@ -10,7 +10,6 @@ export function AddSiteBar({ onAdded }: Props): React.JSX.Element {
   const [error, setError] = useState<string>()
   const [pending, setPending] = useState(false)
   const input = useRef<HTMLInputElement>(null)
-  const inputId = useId()
   const errorId = useId()
 
   async function submit(e: React.FormEvent): Promise<void> {
@@ -40,13 +39,13 @@ export function AddSiteBar({ onAdded }: Props): React.JSX.Element {
 
   return (
     <form className="add-bar" onSubmit={(e) => void submit(e)} noValidate>
-      <label htmlFor={inputId} className="add-label">
+      <label htmlFor="add-site-input" className="add-label">
         Add a website
       </label>
       <div className="add-row">
         <input
           ref={input}
-          id={inputId}
+          id="add-site-input"
           className="field"
           type="text"
           inputMode="url"

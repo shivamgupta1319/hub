@@ -4,7 +4,8 @@ import { totalUnread } from '@shared/badges'
 import { IPC } from '@shared/ipc'
 import icon from '../../resources/icon.png?asset'
 import { cleanUserAgent } from '@shared/links'
-import { broadcastSites, registerIpc } from './ipc'
+import { buildAppMenu } from './appMenu'
+import { registerIpc } from './ipc'
 import { SiteManager } from './siteManager'
 import { SiteStore } from './store'
 
@@ -66,17 +67,18 @@ if (!app.requestSingleInstanceLock()) {
   void app.whenReady().then(() => {
     const store = new SiteStore(join(app.getPath('userData'), 'sites.json'))
     app.userAgentFallback = cleanUserAgent(app.userAgentFallback)
-    registerIpc(
-      store,
-      () => manager,
-      () => mainWindow?.webContents
-    )
     mainWindow = createWindow()
     const ui = mainWindow.webContents
+    // Every change to the saved sites updates the UI and the shortcut menu (Ctrl+1…9).
+    const sitesChanged = (): void => {
+      ui.send(IPC.sitesChanged, store.list())
+      if (manager) buildAppMenu(store.list(), manager, (command) => ui.send(IPC.uiCommand, command))
+    }
+    registerIpc(store, () => manager, sitesChanged)
     manager = new SiteManager(mainWindow, store, {
       active: (id) => ui.send(IPC.viewActive, id),
       status: (status) => ui.send(IPC.viewStatus, status),
-      sitesChanged: () => broadcastSites(store, ui),
+      sitesChanged,
       command: (id, command) => ui.send(IPC.siteCommand, id, command),
       badge: (id, badge) => {
         ui.send(IPC.viewBadge, id, badge)
@@ -97,6 +99,7 @@ if (!app.requestSingleInstanceLock()) {
     // Lets the smoke test use a short sleep delay instead of the default 30 minutes.
     const sleepOverride = Number(process.env['HUB_SLEEP_AFTER_MS'])
     if (sleepOverride > 0) manager.setSleepAfter(sleepOverride)
+    sitesChanged()
     ui.once('did-finish-load', () => manager?.startBackground())
   })
 

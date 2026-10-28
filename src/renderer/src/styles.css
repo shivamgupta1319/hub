@@ -701,3 +701,82 @@ button {
   color: var(--text-muted);
   font-size: var(--text-sm);
 }
+
+/* Sidebar drag to reorder */
+.dock-list li {
+  position: relative;
+}
+
+.dock-list li.is-dragging {
+  opacity: 0.4;
+}
+
+.dock-list li.drop-before::before,
+.dock-list li.drop-after::after {
+  content: '';
+  position: absolute;
+  left: 6px;
+  right: 6px;
+  height: 3px;
+  border-radius: 2px;
+  background: var(--accent);
+}
+
+.dock-list li.drop-before::before {
+  top: -6px;
+}
+
+.dock-list li.drop-after::after {
+  bottom: -6px;
+}
+
+/* Quick switcher */
+.switcher-input {
+  margin-top: var(--space-4);
+}
+
+.switcher-list {
+  display: grid;
+  gap: 2px;
+  max-height: min(50vh, 22rem);
+  margin: var(--space-3) 0 0;
+  padding: 0;
+  overflow-y: auto;
+  list-style: none;
+}
+
+.switcher-option {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: var(--space-3);
+  align-items: center;
+  min-height: 44px;
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+
+.switcher-option[aria-selected='true'] {
+  background: var(--accent-soft);
+}
+
+.switcher-name {
+  overflow: hidden;
+  font-weight: 500;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.switcher-host {
+  max-width: 40vw;
+  overflow: hidden;
+  color: var(--text-muted);
+  font-size: var(--text-sm);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.switcher-empty {
+  margin-top: var(--space-3);
+  color: var(--text-muted);
+}

@@ -145,7 +145,11 @@ export class SiteManager {
   }
 
   showSiteMenu(id: string): void {
+    const ids = this.store.list().map((s) => s.id)
     showSiteMenu(this.win, {
+      canMoveUp: ids.indexOf(id) > 0,
+      canMoveDown: ids.indexOf(id) < ids.length - 1,
+      onMove: (step) => this.move(id, step),
       canSleep: this.views.has(id) && id !== this.activeId,
       onSleep: () => this.sleep(id),
       pageUrl: this.views.get(id)?.webContents.getURL() || this.store.get(id)?.url,
@@ -160,6 +164,58 @@ export class SiteManager {
     const ses = session.fromPartition(partitionFor(id))
     await ses.clearStorageData()
     await ses.clearCache()
+  }
+
+  reloadActive(ignoreCache: boolean): void {
+    const wc = this.activeContents()
+    if (!wc) return
+    if (ignoreCache) wc.reloadIgnoringCache()
+    else this.reload(this.activeId ?? '')
+  }
+
+  /** Zooms the visible site (or the dashboard). `0` resets. */
+  zoom(direction: -1 | 0 | 1): void {
+    const wc = this.activeContents() ?? this.win.webContents
+    const level = direction === 0 ? 0 : wc.getZoomLevel() + direction * 0.5
+    wc.setZoomLevel(Math.max(-3, Math.min(4, level)))
+  }
+
+  history(step: -1 | 1): void {
+    const nav = this.activeContents()?.navigationHistory
+    if (step < 0 && nav?.canGoBack()) nav.goBack()
+    if (step > 0 && nav?.canGoForward()) nav.goForward()
+  }
+
+  /** Opens the next or previous site in sidebar order, wrapping around. Home counts as a stop. */
+  cycle(step: -1 | 1): void {
+    const ids = this.store.list().map((s) => s.id)
+    if (ids.length === 0) return
+    const stops: (string | null)[] = [null, ...ids]
+    const at = stops.indexOf(this.activeId)
+    const next = stops[(at + step + stops.length) % stops.length] ?? null
+    if (next) this.open(next)
+    else this.home()
+  }
+
+  toggleDevTools(): void {
+    const wc = this.activeContents() ?? this.win.webContents
+    if (wc.isDevToolsOpened()) wc.closeDevTools()
+    else wc.openDevTools({ mode: 'detach' })
+  }
+
+  /** Moves a site one place up or down in the sidebar. */
+  move(id: string, step: -1 | 1): void {
+    const ids = this.store.list().map((s) => s.id)
+    const from = ids.indexOf(id)
+    const to = from + step
+    if (from < 0 || to < 0 || to >= ids.length) return
+    ;[ids[from], ids[to]] = [ids[to] ?? id, id]
+    this.store.reorder(ids)
+    this.events.sitesChanged()
+  }
+
+  private activeContents(): Electron.WebContents | undefined {
+    return this.activeId ? this.views.get(this.activeId)?.webContents : undefined
   }
 
   /** Unread badges of loaded pages. */
