@@ -1,3 +1,4 @@
+import type { Badge } from './badges'
 import type { NewSite, Result, Site, SitePatch } from './site'
 
 /** Channel names shared by main, preload and renderer. */
@@ -16,7 +17,10 @@ export const IPC = {
   viewActive: 'view:active',
   viewStatus: 'view:status',
   siteMenu: 'site:menu',
-  siteCommand: 'site:command'
+  siteCommand: 'site:command',
+  /** Sent by a site page when one of its notifications is clicked. */
+  siteFocusRequest: 'site:focus-request',
+  viewBadge: 'view:badge'
 } as const
 
 /** Actions from a sidebar icon's right-click menu that the UI carries out. */
@@ -60,6 +64,7 @@ export interface HubApi {
     onActive(listener: (id: string | null) => void): () => void
     onStatus(listener: (status: ViewStatus) => void): () => void
     /** Shows the native right-click menu for a sidebar icon. */
+    onBadge(listener: (id: string, badge: Badge) => void): () => void
     showSiteMenu(id: string): Promise<void>
     onSiteCommand(listener: (id: string, command: SiteCommand) => void): () => void
   }

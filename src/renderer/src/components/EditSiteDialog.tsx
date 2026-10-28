@@ -20,6 +20,7 @@ export function EditSiteDialog({
   const [name, setName] = useState(site.name)
   const [url, setUrl] = useState(site.url)
   const [keepAlive, setKeepAlive] = useState(site.keepAlive)
+  const [notifications, setNotifications] = useState(site.notifications)
   const [error, setError] = useState<string>()
   const [pending, setPending] = useState(false)
   const [confirmRemove, setConfirmRemove] = useState(startWithRemove)
@@ -27,13 +28,14 @@ export function EditSiteDialog({
   const urlId = useId()
   const keepId = useId()
   const keepHintId = useId()
+  const notifyId = useId()
   const errorId = useId()
 
   async function save(e: React.FormEvent): Promise<void> {
     e.preventDefault()
     setPending(true)
     try {
-      const result = await window.hub.sites.update(site.id, { name, url, keepAlive })
+      const result = await window.hub.sites.update(site.id, { name, url, keepAlive, notifications })
       if (result.ok) onClose()
       else setError(result.error)
     } catch {
@@ -136,6 +138,15 @@ export function EditSiteDialog({
               notifications keep arriving.
             </p>
           </div>
+        </div>
+        <div className="check-field">
+          <input
+            id={notifyId}
+            type="checkbox"
+            checked={notifications}
+            onChange={(e) => setNotifications(e.target.checked)}
+          />
+          <label htmlFor={notifyId}>Show notifications</label>
         </div>
         <div className="dialog-actions">
           <button

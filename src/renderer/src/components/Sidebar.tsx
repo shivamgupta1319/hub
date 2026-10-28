@@ -1,3 +1,4 @@
+import { badgeLabel, type Badge } from '@shared/badges'
 import type { ViewStatus } from '@shared/ipc'
 import type { Site } from '@shared/site'
 import { HomeIcon } from './icons'
@@ -7,9 +8,18 @@ interface Props {
   sites: Site[]
   activeId: string | null
   statuses: ReadonlyMap<string, ViewStatus>
+  badges: ReadonlyMap<string, Badge>
 }
 
-export function Sidebar({ sites, activeId, statuses }: Props): React.JSX.Element {
+function describe(site: Site, state: ViewStatus['state'] | undefined, badge: Badge): string {
+  if (state === 'error' || state === 'crashed') return `${site.name} (didn’t load)`
+  if (state === 'sleeping') return `${site.name} (asleep)`
+  if (typeof badge === 'number') return `${site.name}, ${badge} unread`
+  if (badge === 'dot') return `${site.name}, new activity`
+  return site.name
+}
+
+export function Sidebar({ sites, activeId, statuses, badges }: Props): React.JSX.Element {
   return (
     <nav className="sidebar" aria-label="Sites">
       <button
@@ -29,18 +39,13 @@ export function Sidebar({ sites, activeId, statuses }: Props): React.JSX.Element
           const active = site.id === activeId
           const broken = state === 'error' || state === 'crashed'
           const asleep = state === 'sleeping'
+          const badge = badges.get(site.id) ?? null
           return (
             <li key={site.id}>
               <button
                 type="button"
                 className={`dock-item${active ? ' is-active' : ''}${asleep ? ' is-asleep' : ''}`}
-                aria-label={
-                  broken
-                    ? `${site.name} (didn’t load)`
-                    : asleep
-                      ? `${site.name} (asleep)`
-                      : site.name
-                }
+                aria-label={describe(site, state, badge)}
                 aria-current={active ? 'page' : undefined}
                 title={asleep ? `${site.name} — asleep, opens fresh` : site.name}
                 onClick={() => void window.hub.view.open(site.id)}
@@ -52,6 +57,12 @@ export function Sidebar({ sites, activeId, statuses }: Props): React.JSX.Element
                 <SiteAvatar site={site} size={30} />
                 {state === 'loading' && <span className="dock-loading" aria-hidden="true" />}
                 {broken && <span className="dock-alert" aria-hidden="true" />}
+                {!broken && typeof badge === 'number' && (
+                  <span className="dock-badge" aria-hidden="true">
+                    {badgeLabel(badge)}
+                  </span>
+                )}
+                {!broken && badge === 'dot' && <span className="dock-dot" aria-hidden="true" />}
               </button>
             </li>
           )

@@ -6,6 +6,8 @@ import {
   type BrowserWindow,
   type Session
 } from 'electron'
+import { join } from 'node:path'
+import { parseBadge, type Badge } from '@shared/badges'
 import type { SiteCommand, ViewStatus } from '@shared/ipc'
 import { popupDecision } from '@shared/links'
 import type { Site } from '@shared/site'
@@ -33,6 +35,7 @@ export interface ManagerEvents {
   /** A site's saved details changed (e.g. its icon). */
   sitesChanged(): void
   command(id: string, command: SiteCommand): void
+  badge(id: string, badge: Badge): void
 }
 
 /** Each site gets its own persistent session, so logins never leak between sites. */
@@ -45,6 +48,7 @@ export class SiteManager {
   private readonly views = new Map<string, WebContentsView>()
   private readonly statuses = new Map<string, ViewStatus>()
   private readonly configured = new WeakSet<Session>()
+  private readonly badges = new Map<string, Badge>()
   private readonly sleeper = new SleepScheduler()
   private activeId: string | null = null
   private overlay = false
@@ -158,10 +162,24 @@ export class SiteManager {
     await ses.clearCache()
   }
 
+  /** Unread badges of loaded pages. */
+  allBadges(): Iterable<Badge> {
+    return this.badges.values()
+  }
+
+  /** The site whose page (or popup opened from it) is this WebContents, if any. */
+  siteIdFor(wc: Electron.WebContents): string | undefined {
+    for (const [id, view] of this.views) {
+      if (view.webContents === wc || wc.session === view.webContents.session) return id
+    }
+    return undefined
+  }
+
   /** Closes a site's page. Its session (and login) survives. */
   close(id: string): void {
     const view = this.views.get(id)
     if (!view) return
+    this.setBadge(id, null)
     this.win.contentView.removeChildView(view)
     view.webContents.close()
     this.views.delete(id)
@@ -183,7 +201,7 @@ export class SiteManager {
     view.setVisible(false)
     this.win.contentView.addChildView(view)
     this.views.set(site.id, view)
-    this.configureSession(view.webContents.session)
+    this.configureSession(view.webContents.session, site.id)
 
     const wc = view.webContents
     const id = site.id
@@ -237,6 +255,8 @@ export class SiteManager {
       }
     })
 
+    wc.on('page-title-updated', (_e, title) => this.setBadge(id, parseBadge(title)))
+
     wc.on('did-start-loading', () => this.setStatus({ id, state: 'loading' }))
     wc.on('did-stop-loading', () => {
       const state = this.statuses.get(id)?.state
@@ -266,13 +286,24 @@ export class SiteManager {
     for (const id of due) this.sleep(id)
   }
 
-  private configureSession(ses: Session): void {
+  private setBadge(id: string, badge: Badge): void {
+    if ((this.badges.get(id) ?? null) === badge) return
+    if (badge === null) this.badges.delete(id)
+    else this.badges.set(id, badge)
+    this.events.badge(id, badge)
+  }
+
+  /** One session per site, so `siteId` is fixed for the session's lifetime. */
+  private configureSession(ses: Session, siteId: string): void {
     if (this.configured.has(ses)) return
     this.configured.add(ses)
-    ses.setPermissionRequestHandler((_wc, permission, callback) =>
-      callback(ALLOWED_PERMISSIONS.has(permission))
-    )
-    ses.setPermissionCheckHandler((_wc, permission) => ALLOWED_PERMISSIONS.has(permission))
+    const allowed = (permission: string): boolean =>
+      permission === 'notifications'
+        ? (this.store.get(siteId)?.notifications ?? false)
+        : ALLOWED_PERMISSIONS.has(permission)
+    ses.setPermissionRequestHandler((_wc, permission, callback) => callback(allowed(permission)))
+    ses.setPermissionCheckHandler((_wc, permission) => allowed(permission))
+    ses.registerPreloadScript({ type: 'frame', filePath: join(__dirname, '../preload/site.js') })
     // On Wayland, getSources opens the desktop's own screen picker and returns the choice.
     ses.setDisplayMediaRequestHandler((_request, callback) => {
       desktopCapturer

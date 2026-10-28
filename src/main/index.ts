@@ -1,5 +1,6 @@
 import { join } from 'node:path'
-import { app, BrowserWindow, nativeTheme, shell } from 'electron'
+import { app, BrowserWindow, ipcMain, nativeTheme, shell } from 'electron'
+import { totalUnread } from '@shared/badges'
 import { IPC } from '@shared/ipc'
 import icon from '../../resources/icon.png?asset'
 import { cleanUserAgent } from '@shared/links'
@@ -76,7 +77,22 @@ if (!app.requestSingleInstanceLock()) {
       active: (id) => ui.send(IPC.viewActive, id),
       status: (status) => ui.send(IPC.viewStatus, status),
       sitesChanged: () => broadcastSites(store, ui),
-      command: (id, command) => ui.send(IPC.siteCommand, id, command)
+      command: (id, command) => ui.send(IPC.siteCommand, id, command),
+      badge: (id, badge) => {
+        ui.send(IPC.viewBadge, id, badge)
+        // Shows the total on the Ubuntu dock icon where the launcher supports it.
+        app.setBadgeCount(totalUnread(manager?.allBadges() ?? []))
+      }
+    })
+
+    // A site's notification was clicked: bring Hub forward on that site.
+    ipcMain.on(IPC.siteFocusRequest, (event) => {
+      const id = manager?.siteIdFor(event.sender)
+      if (!id || !mainWindow) return
+      if (mainWindow.isMinimized()) mainWindow.restore()
+      mainWindow.show()
+      mainWindow.focus()
+      manager?.open(id)
     })
     // Lets the smoke test use a short sleep delay instead of the default 30 minutes.
     const sleepOverride = Number(process.env['HUB_SLEEP_AFTER_MS'])

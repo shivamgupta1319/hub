@@ -218,5 +218,36 @@ for (let i = 0; i < 50 && !(await loadedUrls()).includes(`${sbase}/docs`); i++) 
 }
 assert.ok((await loadedUrls()).includes(`${sbase}/docs`))
 console.log('✓ opening a sleeping site loads it again')
+
+// --- Badges and notifications ---
+const inSleepSite = (path, js) =>
+  app.evaluate(
+    async ({ webContents }, { path, js }) => {
+      const wc = webContents.getAllWebContents().find((w) => w.getURL().endsWith(path))
+      return wc ? wc.executeJavaScript(js) : undefined
+    },
+    { path, js }
+  )
+await inSleepSite('/chat', "document.title = '(3) Chat'")
+await page.waitForSelector('[aria-label="chat, 3 unread"] .dock-badge')
+assert.equal(await page.innerText('[aria-label="chat, 3 unread"] .dock-badge'), '3')
+await inSleepSite('/chat', "document.title = 'Chat'")
+await page.waitForSelector('[aria-label="chat"]')
+console.log('✓ unread counts from the page title show on the sidebar icon')
+
+assert.equal(await inSleepSite('/chat', 'Notification.permission'), 'granted')
+await page.click('[aria-label="All sites"]')
+await page.click('[aria-label="Edit chat"]')
+await page.click('dialog >> text=Show notifications')
+await page.click('dialog button[type=submit]')
+await page.waitForSelector('dialog', { state: 'detached' })
+assert.equal(await inSleepSite('/chat', 'Notification.permission'), 'denied')
+console.log('✓ notifications can be turned off per site')
+
+await page.click('[aria-label="All sites"]')
+await inSleepSite('/chat', 'window.__hubFocusSite()')
+await page.waitForSelector('[aria-label="chat"][aria-current="page"]')
+console.log('✓ clicking a site’s notification brings that site forward')
+
 await app.close()
 sleepServer.close()

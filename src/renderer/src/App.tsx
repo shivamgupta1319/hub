@@ -10,7 +10,7 @@ import { useSites } from './hooks/useSites'
 
 export function App(): React.JSX.Element {
   const { state, reload } = useSites()
-  const { activeId, statuses } = useActiveSite()
+  const { activeId, statuses, badges } = useActiveSite()
   const [editing, setEditing] = useState<{ id: string; command: SiteCommand }>()
   const [status, setStatus] = useState('')
 
@@ -23,7 +23,7 @@ export function App(): React.JSX.Element {
 
   return (
     <div className="shell">
-      <Sidebar sites={sites} activeId={activeId} statuses={statuses} />
+      <Sidebar sites={sites} activeId={activeId} statuses={statuses} badges={badges} />
       <main className="content" id="content">
         {activeSite ? (
           <SiteStage

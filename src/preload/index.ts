@@ -1,5 +1,6 @@
 import { contextBridge, ipcRenderer, type IpcRendererEvent } from 'electron'
 import { IPC, type HubApi, type SiteCommand, type ViewStatus } from '@shared/ipc'
+import type { Badge } from '@shared/badges'
 import type { Site } from '@shared/site'
 
 const api: HubApi = {
@@ -30,6 +31,11 @@ const api: HubApi = {
       const handler = (_e: IpcRendererEvent, status: ViewStatus): void => listener(status)
       ipcRenderer.on(IPC.viewStatus, handler)
       return () => ipcRenderer.off(IPC.viewStatus, handler)
+    },
+    onBadge: (listener) => {
+      const handler = (_e: IpcRendererEvent, id: string, badge: Badge): void => listener(id, badge)
+      ipcRenderer.on(IPC.viewBadge, handler)
+      return () => ipcRenderer.off(IPC.viewBadge, handler)
     },
     showSiteMenu: (id) => ipcRenderer.invoke(IPC.siteMenu, id),
     onSiteCommand: (listener) => {
