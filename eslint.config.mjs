@@ -12,6 +12,11 @@ export default tseslint.config(
     languageOptions: { globals: globals.node }
   },
   {
+    files: ['**/*.cjs'],
+    languageOptions: { sourceType: 'commonjs', globals: globals.node },
+    rules: { '@typescript-eslint/no-require-imports': 'off' }
+  },
+  {
     // Tests index into arrays they just built; asserting non-null there is clearer than guards.
     files: ['**/*.test.ts'],
     rules: { '@typescript-eslint/no-non-null-assertion': 'off' }

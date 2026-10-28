@@ -16,7 +16,8 @@
     "format": "prettier --write .",
     "test": "vitest run",
     "shoot": "electron-vite build && node scripts/shoot.mjs",
-    "smoke": "electron-vite build && node scripts/smoke.mjs"
+    "smoke": "electron-vite build && node scripts/smoke.mjs",
+    "icons": "env -u ELECTRON_RUN_AS_NODE electron scripts/render-icons.cjs"
   },
   "dependencies": {
     "@fontsource/ibm-plex-sans": "^5.2.8",
@@ -41,5 +42,6 @@
     "typescript-eslint": "^8.72.1",
     "vite": "^8.0.0",
     "vitest": "^5.0.5"
-  }
+  },
+  "desktopName": "hub.desktop"
 }

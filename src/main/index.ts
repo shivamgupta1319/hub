@@ -1,6 +1,7 @@
 import { join } from 'node:path'
 import { app, BrowserWindow, nativeTheme, shell } from 'electron'
 import { IPC } from '@shared/ipc'
+import icon from '../../resources/icon.png?asset'
 import { cleanUserAgent } from '@shared/links'
 import { broadcastSites, registerIpc } from './ipc'
 import { SiteManager } from './siteManager'
@@ -18,6 +19,7 @@ function createWindow(): BrowserWindow {
     minHeight: 480,
     show: false,
     title: 'Hub',
+    icon,
     autoHideMenuBar: true,
     backgroundColor: nativeTheme.shouldUseDarkColors ? BG_DARK : BG_LIGHT,
     webPreferences: {
