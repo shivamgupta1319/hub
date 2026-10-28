@@ -5,6 +5,10 @@ import type { Site } from '@shared/site'
 
 const api: HubApi = {
   appInfo: () => ipcRenderer.invoke(IPC.appInfo),
+  settings: {
+    get: () => ipcRenderer.invoke(IPC.settingsGet),
+    update: (patch) => ipcRenderer.invoke(IPC.settingsUpdate, patch)
+  },
   onCommand: (listener) => {
     const handler = (_e: IpcRendererEvent, command: UiCommand): void => listener(command)
     ipcRenderer.on(IPC.uiCommand, handler)

@@ -7,7 +7,9 @@ import { join } from 'node:path'
 import { _electron as electron } from 'playwright'
 
 const profile = mkdtempSync(join(tmpdir(), 'hub-smoke-'))
-const env = { ...process.env, HUB_USER_DATA: profile }
+// A temp XDG config dir keeps 'Start at login' from touching the real ~/.config/autostart.
+const xdgConfig = mkdtempSync(join(tmpdir(), 'hub-smoke-xdg-'))
+const env = { ...process.env, HUB_USER_DATA: profile, XDG_CONFIG_HOME: xdgConfig }
 delete env.ELECTRON_RUN_AS_NODE
 
 async function launch(extraEnv = {}) {
@@ -296,6 +298,45 @@ assert.deepEqual(orderOnDisk, ['docs', 'chat'])
 await shortcut('CmdOrCtrl+1')
 await page.waitForSelector('[aria-label="docs"][aria-current="page"]')
 console.log('✓ dragging an icon reorders the sidebar, and Ctrl+1 follows the new order')
+
+// --- Settings and close to tray ---
+const { existsSync } = await import('node:fs')
+await shortcut('Alt+Home')
+await page.click('[aria-label="Settings"]')
+await page.waitForSelector('dialog[aria-label="Settings"] select')
+await page.selectOption('dialog select', '0')
+for (let i = 0; i < 50; i++) {
+  const saved = existsSync(join(sleepProfile, 'settings.json'))
+    ? JSON.parse(readFileSync(join(sleepProfile, 'settings.json'), 'utf8'))
+    : {}
+  if (saved.sleepAfterMinutes === 0) break
+  await new Promise((r) => setTimeout(r, 100))
+}
+assert.equal(
+  JSON.parse(readFileSync(join(sleepProfile, 'settings.json'), 'utf8')).sleepAfterMinutes,
+  0
+)
+const autostartFile = join(xdgConfig, 'autostart', 'hub.desktop')
+await page.click('dialog >> text=Start Hub when I log in')
+for (let i = 0; i < 50 && !existsSync(autostartFile); i++) {
+  await new Promise((r) => setTimeout(r, 100))
+}
+assert.match(readFileSync(autostartFile, 'utf8'), /^Exec=.* --hidden$/m)
+await page.click('dialog >> text=Start Hub when I log in')
+for (let i = 0; i < 50 && existsSync(autostartFile); i++) {
+  await new Promise((r) => setTimeout(r, 100))
+}
+assert.equal(existsSync(autostartFile), false)
+await page.click('dialog >> text=Done')
+console.log('✓ settings save, and “Start Hub when I log in” adds and removes the autostart entry')
+
+await app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0].close())
+await new Promise((r) => setTimeout(r, 500))
+assert.equal(
+  await app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0].isVisible()),
+  false
+)
+console.log('✓ closing the window keeps Hub running in the tray')
 
 await app.close()
 sleepServer.close()

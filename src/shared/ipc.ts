@@ -1,4 +1,5 @@
 import type { Badge } from './badges'
+import type { Settings } from './settings'
 import type { NewSite, Result, Site, SitePatch } from './site'
 
 /** Channel names shared by main, preload and renderer. */
@@ -21,7 +22,9 @@ export const IPC = {
   /** Sent by a site page when one of its notifications is clicked. */
   siteFocusRequest: 'site:focus-request',
   viewBadge: 'view:badge',
-  uiCommand: 'ui:command'
+  uiCommand: 'ui:command',
+  settingsGet: 'settings:get',
+  settingsUpdate: 'settings:update'
 } as const
 
 /** Requests from the window menu (keyboard shortcuts) that the UI carries out. */
@@ -55,6 +58,10 @@ export interface HubApi {
     reorder(ids: string[]): Promise<void>
     /** Fires with the full list whenever it changes. Returns an unsubscribe function. */
     onChanged(listener: (sites: Site[]) => void): () => void
+  }
+  settings: {
+    get(): Promise<Settings>
+    update(patch: Partial<Settings>): Promise<Settings>
   }
   /** Fires when a keyboard shortcut asks the UI to do something. */
   onCommand(listener: (command: UiCommand) => void): () => void

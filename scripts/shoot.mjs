@@ -15,7 +15,12 @@ mkdirSync(outDir, { recursive: true })
 // A throwaway profile so screenshots never touch real saved sites or logins.
 const profile = mkdtempSync(join(tmpdir(), 'hub-shoot-'))
 if (process.env.SHOOT_SEED) copyFileSync(process.env.SHOOT_SEED, join(profile, 'sites.json'))
-const env = { ...process.env, HUB_USER_DATA: profile }
+// Temp XDG config so 'Start at login' never touches the real ~/.config/autostart.
+const env = {
+  ...process.env,
+  HUB_USER_DATA: profile,
+  XDG_CONFIG_HOME: mkdtempSync(join(tmpdir(), 'hub-shoot-xdg-'))
+}
 delete env.ELECTRON_RUN_AS_NODE
 const app = await electron.launch({ args: ['--ozone-platform=x11', '.'], env })
 const page = await app.firstWindow()

@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { badgeLabel, type Badge } from '@shared/badges'
 import type { ViewStatus } from '@shared/ipc'
 import type { Site } from '@shared/site'
-import { HomeIcon } from './icons'
+import { GearIcon, HomeIcon } from './icons'
 import { SiteAvatar } from './SiteAvatar'
 
 interface Props {
@@ -10,6 +10,7 @@ interface Props {
   activeId: string | null
   statuses: ReadonlyMap<string, ViewStatus>
   badges: ReadonlyMap<string, Badge>
+  onSettings: () => void
 }
 
 function describe(site: Site, state: ViewStatus['state'] | undefined, badge: Badge): string {
@@ -28,7 +29,13 @@ function reordered(ids: string[], id: string, dropIndex: number): string[] {
   return [...without.slice(0, at), id, ...without.slice(at)]
 }
 
-export function Sidebar({ sites, activeId, statuses, badges }: Props): React.JSX.Element {
+export function Sidebar({
+  sites,
+  activeId,
+  statuses,
+  badges,
+  onSettings
+}: Props): React.JSX.Element {
   // Drag to reorder; the sidebar's right-click menu offers Move up/down for keyboard users.
   const [dragId, setDragId] = useState<string>()
   const [dropIndex, setDropIndex] = useState<number>()
@@ -122,6 +129,15 @@ export function Sidebar({ sites, activeId, statuses, badges }: Props): React.JSX
           )
         })}
       </ul>
+      <button
+        type="button"
+        className="dock-item dock-settings"
+        aria-label="Settings"
+        title="Settings (Ctrl+,)"
+        onClick={onSettings}
+      >
+        <GearIcon />
+      </button>
     </nav>
   )
 }

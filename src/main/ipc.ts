@@ -1,6 +1,8 @@
 import { app, ipcMain } from 'electron'
 import { z } from 'zod'
 import { IPC, type AppInfo } from '@shared/ipc'
+import { settingsSchema, type Settings } from '@shared/settings'
+import type { SettingsStore } from './settings'
 import type { SiteManager } from './siteManager'
 import type { SiteStore } from './store'
 
@@ -68,4 +70,18 @@ export function registerIpc(
   ipcMain.handle(IPC.viewOverlay, (_e, open: unknown) =>
     manager()?.setOverlay(z.boolean().parse(open))
   )
+}
+
+export function registerSettingsIpc(
+  settings: SettingsStore,
+  apply: (settings: Settings) => void
+): void {
+  ipcMain.handle(IPC.settingsGet, () => settings.get())
+  ipcMain.handle(IPC.settingsUpdate, (_e, patch: unknown) => {
+    const parsed = settingsSchema.partial().parse(patch)
+    const clean = Object.fromEntries(Object.entries(parsed).filter(([, v]) => v !== undefined))
+    const next = settings.update(clean)
+    apply(next)
+    return next
+  })
 }

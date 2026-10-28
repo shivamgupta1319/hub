@@ -1,6 +1,5 @@
 import { randomUUID } from 'node:crypto'
-import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from 'node:fs'
-import { dirname } from 'node:path'
+import { existsSync, readFileSync, renameSync } from 'node:fs'
 import {
   defaultName,
   NAME_MAX,
@@ -11,8 +10,9 @@ import {
   type Site,
   type SitePatch
 } from '@shared/site'
+import { writeJsonAtomic } from './jsonFile'
 
-/** Saved sites in one JSON file. Writes go through a temp file so a crash can't truncate it. */
+/** Saved sites in one JSON file. */
 export class SiteStore {
   private sites: Site[] = []
 
@@ -114,10 +114,7 @@ export class SiteStore {
   }
 
   private save(): void {
-    mkdirSync(dirname(this.filePath), { recursive: true })
-    const tmp = `${this.filePath}.tmp`
-    writeFileSync(tmp, JSON.stringify({ version: 1, sites: this.sites }, null, 2))
-    renameSync(tmp, this.filePath)
+    writeJsonAtomic(this.filePath, { version: 1, sites: this.sites })
   }
 }
 

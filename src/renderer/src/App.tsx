@@ -4,6 +4,7 @@ import type { Site } from '@shared/site'
 import { Dashboard } from './components/Dashboard'
 import { EditSiteDialog } from './components/EditSiteDialog'
 import { QuickSwitcher } from './components/QuickSwitcher'
+import { SettingsDialog } from './components/SettingsDialog'
 import { Sidebar } from './components/Sidebar'
 import { SiteStage } from './components/SiteStage'
 import { useActiveSite } from './hooks/useActiveSite'
@@ -16,12 +17,14 @@ export function App(): React.JSX.Element {
   const [status, setStatus] = useState('')
 
   const [switcherOpen, setSwitcherOpen] = useState(false)
+  const [settingsOpen, setSettingsOpen] = useState(false)
 
   useEffect(() => window.hub.view.onSiteCommand((id, command) => setEditing({ id, command })), [])
   useEffect(
     () =>
       window.hub.onCommand((command) => {
         if (command === 'quick-switch') setSwitcherOpen(true)
+        if (command === 'settings') setSettingsOpen(true)
         // Main has already switched to the dashboard; focus once it has rendered.
         if (command === 'add-site') {
           requestAnimationFrame(() => document.getElementById('add-site-input')?.focus())
@@ -37,7 +40,13 @@ export function App(): React.JSX.Element {
 
   return (
     <div className="shell">
-      <Sidebar sites={sites} activeId={activeId} statuses={statuses} badges={badges} />
+      <Sidebar
+        sites={sites}
+        activeId={activeId}
+        statuses={statuses}
+        badges={badges}
+        onSettings={() => setSettingsOpen(true)}
+      />
       <main className="content" id="content">
         {activeSite ? (
           <SiteStage
@@ -57,6 +66,7 @@ export function App(): React.JSX.Element {
       <p className="sr-only" role="status" aria-live="polite">
         {status}
       </p>
+      {settingsOpen && <SettingsDialog onClose={() => setSettingsOpen(false)} />}
       {switcherOpen && <QuickSwitcher sites={sites} onClose={() => setSwitcherOpen(false)} />}
       {editing && editingSite && (
         <EditSiteDialog

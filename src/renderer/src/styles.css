@@ -780,3 +780,18 @@ button {
   margin-top: var(--space-3);
   color: var(--text-muted);
 }
+
+.dock-settings {
+  margin-top: auto;
+  flex: none;
+}
+
+.dialog-meta {
+  align-self: center;
+  color: var(--text-muted);
+  font-size: var(--text-sm);
+}
+
+select.field {
+  appearance: auto;
+}

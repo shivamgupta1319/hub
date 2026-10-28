@@ -2,18 +2,23 @@ import { join } from 'node:path'
 import { app, BrowserWindow, ipcMain, nativeTheme, shell } from 'electron'
 import { totalUnread } from '@shared/badges'
 import { IPC } from '@shared/ipc'
-import icon from '../../resources/icon.png?asset'
 import { cleanUserAgent } from '@shared/links'
+import type { Settings } from '@shared/settings'
+import icon from '../../resources/icon.png?asset'
+import trayIcon from '../../resources/tray.png?asset'
 import { buildAppMenu } from './appMenu'
-import { registerIpc } from './ipc'
+import { HIDDEN_FLAG, setLaunchAtLogin } from './autostart'
+import { registerIpc, registerSettingsIpc } from './ipc'
+import { SettingsStore } from './settings'
 import { SiteManager } from './siteManager'
 import { SiteStore } from './store'
+import { HubTray } from './tray'
 
 // Matches --bg in the renderer so the window doesn't flash white on open.
 const BG_LIGHT = '#f3f5f7'
 const BG_DARK = '#16191d'
 
-function createWindow(): BrowserWindow {
+function createWindow(showWhenReady: boolean): BrowserWindow {
   const win = new BrowserWindow({
     width: 1280,
     height: 820,
@@ -32,7 +37,7 @@ function createWindow(): BrowserWindow {
     }
   })
 
-  win.once('ready-to-show', () => win.show())
+  if (showWhenReady) win.once('ready-to-show', () => win.show())
 
   // The UI never opens windows itself; anything it links to goes to the system browser.
   win.webContents.setWindowOpenHandler(({ url }) => {
@@ -47,35 +52,69 @@ function createWindow(): BrowserWindow {
   return win
 }
 
+/** How to start this exact build again: the AppImage, the installed binary, or dev Electron. */
+function launchCommand(): string[] {
+  const appImage = process.env['APPIMAGE']
+  if (appImage) return [appImage]
+  return app.isPackaged ? [process.execPath] : [process.execPath, app.getAppPath()]
+}
+
 // Lets tests and screenshot runs use a throwaway profile.
 const userDataOverride = process.env['HUB_USER_DATA']
 if (userDataOverride) app.setPath('userData', userDataOverride)
 
 let mainWindow: BrowserWindow | undefined
 let manager: SiteManager | undefined
+let tray: HubTray | undefined
+let quitting = false
+
+function showWindow(): void {
+  if (!mainWindow) return
+  if (mainWindow.isMinimized()) mainWindow.restore()
+  mainWindow.show()
+  mainWindow.focus()
+}
 
 if (!app.requestSingleInstanceLock()) {
   app.quit()
 } else {
-  app.on('second-instance', () => {
-    const [win] = BrowserWindow.getAllWindows()
-    if (!win) return
-    if (win.isMinimized()) win.restore()
-    win.focus()
+  // Launching Hub again (from the app grid, or while hidden in the tray) shows the window.
+  app.on('second-instance', showWindow)
+  app.on('before-quit', () => {
+    quitting = true
   })
 
   void app.whenReady().then(() => {
-    const store = new SiteStore(join(app.getPath('userData'), 'sites.json'))
+    const userData = app.getPath('userData')
+    const store = new SiteStore(join(userData, 'sites.json'))
+    const settings = new SettingsStore(join(userData, 'settings.json'))
     app.userAgentFallback = cleanUserAgent(app.userAgentFallback)
-    mainWindow = createWindow()
-    const ui = mainWindow.webContents
-    // Every change to the saved sites updates the UI and the shortcut menu (Ctrl+1…9).
+
+    // Started at login: wait in the tray until the person opens Hub.
+    const startHidden = process.argv.includes(HIDDEN_FLAG)
+    mainWindow = createWindow(!startHidden)
+    const win = mainWindow
+    const ui = win.webContents
+
+    tray = new HubTray(trayIcon, {
+      show: showWindow,
+      open: (id) => {
+        showWindow()
+        manager?.open(id)
+      },
+      quit: () => app.quit()
+    })
+    const updateTray = (): void => tray?.update(store.list(), (id) => manager?.badgeFor(id) ?? null)
+
+    // Every change to the saved sites updates the UI, the shortcut menu (Ctrl+1…9) and the tray.
     const sitesChanged = (): void => {
       ui.send(IPC.sitesChanged, store.list())
       if (manager) buildAppMenu(store.list(), manager, (command) => ui.send(IPC.uiCommand, command))
+      updateTray()
     }
     registerIpc(store, () => manager, sitesChanged)
-    manager = new SiteManager(mainWindow, store, {
+
+    manager = new SiteManager(win, store, {
       active: (id) => ui.send(IPC.viewActive, id),
       status: (status) => ui.send(IPC.viewStatus, status),
       sitesChanged,
@@ -84,21 +123,36 @@ if (!app.requestSingleInstanceLock()) {
         ui.send(IPC.viewBadge, id, badge)
         // Shows the total on the Ubuntu dock icon where the launcher supports it.
         app.setBadgeCount(totalUnread(manager?.allBadges() ?? []))
+        updateTray()
       }
+    })
+
+    const applySettings = (value: Settings): void => {
+      manager?.setSleepAfter(value.sleepAfterMinutes * 60_000)
+      // Rewritten every start so the entry follows the AppImage if it was moved.
+      setLaunchAtLogin(value.launchAtLogin, launchCommand())
+    }
+    registerSettingsIpc(settings, applySettings)
+    applySettings(settings.get())
+    // Lets the smoke test use a short sleep delay instead of minutes.
+    const sleepOverride = Number(process.env['HUB_SLEEP_AFTER_MS'])
+    if (sleepOverride > 0) manager.setSleepAfter(sleepOverride)
+
+    // Closing the window keeps Hub running in the tray, so chat notifications keep arriving.
+    win.on('close', (event) => {
+      if (quitting || !settings.get().closeToTray || !tray) return
+      event.preventDefault()
+      win.hide()
     })
 
     // A site's notification was clicked: bring Hub forward on that site.
     ipcMain.on(IPC.siteFocusRequest, (event) => {
       const id = manager?.siteIdFor(event.sender)
-      if (!id || !mainWindow) return
-      if (mainWindow.isMinimized()) mainWindow.restore()
-      mainWindow.show()
-      mainWindow.focus()
+      if (!id) return
+      showWindow()
       manager?.open(id)
     })
-    // Lets the smoke test use a short sleep delay instead of the default 30 minutes.
-    const sleepOverride = Number(process.env['HUB_SLEEP_AFTER_MS'])
-    if (sleepOverride > 0) manager.setSleepAfter(sleepOverride)
+
     sitesChanged()
     ui.once('did-finish-load', () => manager?.startBackground())
   })

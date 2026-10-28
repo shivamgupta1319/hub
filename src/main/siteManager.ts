@@ -223,6 +223,10 @@ export class SiteManager {
     return this.badges.values()
   }
 
+  badgeFor(id: string): Badge {
+    return this.badges.get(id) ?? null
+  }
+
   /** The site whose page (or popup opened from it) is this WebContents, if any. */
   siteIdFor(wc: Electron.WebContents): string | undefined {
     for (const [id, view] of this.views) {

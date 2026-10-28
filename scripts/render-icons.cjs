@@ -37,6 +37,9 @@ app
     })
     copyFileSync(join(root, 'build/icons/512x512.png'), join(root, 'build/icon.png'))
     copyFileSync(join(root, 'build/icons/256x256.png'), join(root, 'resources/icon.png'))
+    // Tray icon; Electron picks the @2x file on HiDPI screens.
+    copyFileSync(join(root, 'build/icons/32x32.png'), join(root, 'resources/tray.png'))
+    copyFileSync(join(root, 'build/icons/64x64.png'), join(root, 'resources/tray@2x.png'))
   })
   .catch((err) => {
     console.error(err)
