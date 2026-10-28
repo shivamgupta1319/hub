@@ -1,5 +1,5 @@
 // End-to-end smoke test against the built app: add, validate, edit, remove, persist.
-// Usage: npm run build && node scripts/smoke.mjs
+// Usage: npm run smoke   (or `npm run dist && npm run smoke:dist` for the packaged app)
 import assert from 'node:assert/strict'
 import { mkdtempSync } from 'node:fs'
 import { tmpdir } from 'node:os'
@@ -13,8 +13,11 @@ const env = { ...process.env, HUB_USER_DATA: profile, XDG_CONFIG_HOME: xdgConfig
 delete env.ELECTRON_RUN_AS_NODE
 
 async function launch(extraEnv = {}) {
+  // SMOKE_EXECUTABLE tests a packaged build (e.g. dist/linux-unpacked/hub) instead of dev.
+  const executablePath = process.env.SMOKE_EXECUTABLE
   const app = await electron.launch({
-    args: ['--ozone-platform=x11', '.'],
+    ...(executablePath ? { executablePath } : {}),
+    args: executablePath ? ['--ozone-platform=x11'] : ['--ozone-platform=x11', '.'],
     env: { ...env, ...extraEnv }
   })
   const page = await app.firstWindow()

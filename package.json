@@ -17,31 +17,78 @@
     "test": "vitest run",
     "shoot": "electron-vite build && node scripts/shoot.mjs",
     "smoke": "electron-vite build && node scripts/smoke.mjs",
-    "icons": "env -u ELECTRON_RUN_AS_NODE electron scripts/render-icons.cjs"
+    "icons": "env -u ELECTRON_RUN_AS_NODE electron scripts/render-icons.cjs",
+    "dist": "electron-vite build && electron-builder --linux",
+    "smoke:dist": "SMOKE_EXECUTABLE=dist/linux-unpacked/hub node scripts/smoke.mjs"
   },
   "dependencies": {
-    "@fontsource/ibm-plex-sans": "^5.2.8",
-    "react": "^19.3.1",
-    "react-dom": "^19.3.1",
     "zod": "^4.6.7"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
+    "@fontsource/ibm-plex-sans": "^5.2.8",
     "@types/node": "^24.19.2",
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^6.1.2",
     "electron": "^45.1.0",
+    "electron-builder": "^26.18.0",
     "electron-vite": "^6.0.0",
     "eslint": "^10.13.0",
     "eslint-plugin-react-hooks": "^7.1.1",
     "globals": "^17.13.0",
     "playwright": "^1.64.1",
     "prettier": "^3.9.10",
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1",
     "typescript": "~6.0.3",
     "typescript-eslint": "^8.72.1",
     "vite": "^8.0.0",
     "vitest": "^5.0.5"
   },
-  "desktopName": "hub.desktop"
+  "desktopName": "hub.desktop",
+  "homepage": "https://github.com/shivamgupta1319/hub",
+  "build": {
+    "appId": "io.github.shivamgupta1319.hub",
+    "productName": "Hub",
+    "executableName": "hub",
+    "directories": {
+      "output": "dist",
+      "buildResources": "build"
+    },
+    "files": [
+      "out/**",
+      "resources/**",
+      "package.json"
+    ],
+    "asarUnpack": [
+      "resources/**"
+    ],
+    "linux": {
+      "target": [
+        "AppImage",
+        "deb"
+      ],
+      "category": "Network",
+      "icon": "build/icons",
+      "synopsis": "Your websites in one app",
+      "description": "Your websites in one app, with a quick-switch sidebar.",
+      "maintainer": "shivamgupta1319 <sg247938@gmail.com>",
+      "syncDesktopName": true,
+      "desktop": {
+        "entry": {
+          "Name": "Hub",
+          "Comment": "Your websites in one app",
+          "Keywords": "web;apps;mail;chat;sidebar;"
+        }
+      }
+    },
+    "appImage": {
+      "artifactName": "Hub-${version}-${arch}.AppImage"
+    },
+    "deb": {
+      "artifactName": "hub_${version}_${arch}.deb"
+    },
+    "publish": null
+  }
 }

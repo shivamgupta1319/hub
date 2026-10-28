@@ -8,40 +8,70 @@ desktop app for Ubuntu. Add a site once, then switch between them from the sideb
 ## What it does
 
 - **Dashboard** of your saved sites. Paste an address to add one; edit or remove it any time.
-- **Sidebar** with every site's icon. One click switches; pages stay loaded in the background.
+- **Sidebar** with every site's icon. One click switches; drag icons to reorder them.
 - **A separate login per site.** Each site has its own cookies, so you can add the same
-  service twice with different accounts.
-- **Links that leave the site open in your default browser.** Sign-in popups and the site's
-  own pop-outs (like Gmail's compose window) stay inside Hub.
-- **Real favicons**, a right-click menu in pages and on sidebar icons, and clear messages
-  when a site can't load.
+  service twice with different accounts. Removing a site signs you out of it.
+- **Unread badges** read from page titles, and **notifications** you can turn off per site.
+  Clicking a notification brings Hub forward on that site.
+- **Sleeping sites.** Sites you haven't used for a while close to save memory and reload when
+  you open them. Mark chat and mail as _Keep running in the background_ so they never sleep.
+- **Tray icon** with your sites and unread counts. Closing the window keeps Hub running there,
+  and Hub can start at login (both in Settings).
+- Links that leave a site open in your default browser; sign-in popups stay inside Hub.
 
-Planned next: putting idle sites to sleep to save memory, unread badges and notifications,
-keyboard shortcuts with a quick switcher, a tray icon, start at login, and AppImage/.deb
-packages.
+## Install
 
-## Run it
+Build the packages with `npm run dist` (see [Build from source](#build-from-source)), then:
+
+- **.deb** (Ubuntu, Debian): `sudo apt install ./hub_0.1.0_amd64.deb`, then open Hub from the
+  app grid.
+- **AppImage**: `chmod +x Hub-0.1.0-x86_64.AppImage && ./Hub-0.1.0-x86_64.AppImage`. On
+  Ubuntu 22.04+ AppImages need `sudo apt install libfuse2t64` (or `libfuse2` on 22.04).
+
+The tray icon uses AppIndicator, which Ubuntu enables by default. Your sites are saved in
+`~/.config/hub/`.
+
+## Keyboard shortcuts
+
+Press <kbd>Alt</kbd> to show the menu with all of them.
+
+| Shortcut                                                   | Action                    |
+| ---------------------------------------------------------- | ------------------------- |
+| <kbd>Ctrl</kbd>+<kbd>1</kbd>…<kbd>9</kbd>                  | Open the first nine sites |
+| <kbd>Ctrl</kbd>+<kbd>Tab</kbd> / +<kbd>Shift</kbd>         | Next / previous site      |
+| <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>K</kbd>              | Go to a site by name      |
+| <kbd>Alt</kbd>+<kbd>Home</kbd>                             | All sites (dashboard)     |
+| <kbd>Alt</kbd>+<kbd>←</kbd> / <kbd>→</kbd>                 | Back / forward            |
+| <kbd>Ctrl</kbd>+<kbd>R</kbd>                               | Reload the site           |
+| <kbd>Ctrl</kbd>+<kbd>=</kbd> / <kbd>-</kbd> / <kbd>0</kbd> | Zoom in / out / reset     |
+| <kbd>Ctrl</kbd>+<kbd>N</kbd>                               | Add a site                |
+| <kbd>Ctrl</kbd>+<kbd>,</kbd>                               | Settings                  |
+
+<kbd>Ctrl</kbd>+<kbd>K</kbd> is left to the sites themselves (Slack, GitHub and Notion use it).
+
+## Build from source
 
 Requires Node.js 22+ on Linux.
 
 ```bash
 npm install
-npm run dev
+npm run dev     # run with hot reload
+npm run dist    # build dist/Hub-<version>-x86_64.AppImage and dist/hub_<version>_amd64.deb
 ```
-
-Your sites are saved in `~/.config/hub/sites.json`.
 
 ## Develop
 
-| Command             | What it does                                                   |
-| ------------------- | -------------------------------------------------------------- |
-| `npm run dev`       | Start the app with hot reload                                  |
-| `npm run typecheck` | Type-check main, preload and renderer                          |
-| `npm run lint`      | Lint everything                                                |
-| `npm test`          | Unit tests (Vitest)                                            |
-| `npm run smoke`     | Build, then drive the real app end to end with Playwright      |
-| `npm run shoot`     | Build, then screenshot the app at 360–1280px into `.ui-shots/` |
-| `npm run icons`     | Render `build/icon.svg` to the PNG icon sizes                  |
+| Command              | What it does                                                   |
+| -------------------- | -------------------------------------------------------------- |
+| `npm run dev`        | Start the app with hot reload                                  |
+| `npm run typecheck`  | Type-check main, preload and renderer                          |
+| `npm run lint`       | Lint everything                                                |
+| `npm test`           | Unit tests (Vitest)                                            |
+| `npm run smoke`      | Build, then drive the real app end to end with Playwright      |
+| `npm run smoke:dist` | Same, against the packaged app in `dist/linux-unpacked`        |
+| `npm run dist`       | Build the AppImage and .deb into `dist/`                       |
+| `npm run shoot`      | Build, then screenshot the app at 360–1280px into `.ui-shots/` |
+| `npm run icons`      | Render `build/icon.svg` to the PNG icon sizes                  |
 
 Built with Electron, React and TypeScript. Design notes live in [docs/design.md](docs/design.md).
 
