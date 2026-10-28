@@ -583,6 +583,11 @@ button {
 }
 
 /* Dock indicators */
+.dock-item.is-asleep .avatar {
+  filter: grayscale(1);
+  opacity: 0.45;
+}
+
 .dock-item .avatar {
   pointer-events: none;
 }
@@ -642,4 +647,28 @@ button {
   justify-content: center;
   gap: var(--space-2);
   margin-top: var(--space-2);
+}
+
+.check-field {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: var(--space-3);
+  align-items: start;
+}
+
+.check-field input {
+  width: 20px;
+  height: 20px;
+  margin: 2px 0 0;
+  accent-color: var(--accent);
+}
+
+.check-field label {
+  font-weight: 500;
+}
+
+.field-hint {
+  margin-top: 2px;
+  color: var(--text-muted);
+  font-size: var(--text-sm);
 }

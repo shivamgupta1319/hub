@@ -11,6 +11,7 @@ import { popupDecision } from '@shared/links'
 import type { Site } from '@shared/site'
 import { fetchIcon } from './favicon'
 import { attachPageMenu, showSiteMenu } from './menus'
+import { SleepScheduler } from './sleep'
 import type { SiteStore } from './store'
 
 /** Must match --dock-width in the renderer. */
@@ -44,14 +45,19 @@ export class SiteManager {
   private readonly views = new Map<string, WebContentsView>()
   private readonly statuses = new Map<string, ViewStatus>()
   private readonly configured = new WeakSet<Session>()
+  private readonly sleeper = new SleepScheduler()
   private activeId: string | null = null
   private overlay = false
+  private sleepAfterMs = 30 * 60_000
+  private sleepTimer: NodeJS.Timeout | undefined
 
   constructor(
     private readonly win: BrowserWindow,
     private readonly store: SiteStore,
     private readonly events: ManagerEvents
   ) {
+    this.setSleepAfter(this.sleepAfterMs)
+
     const relayout = (): void => this.layout()
     win.on('resize', relayout)
     win.on('maximize', relayout)
@@ -64,6 +70,8 @@ export class SiteManager {
     const site = this.store.get(id)
     if (!site) return
     const view = this.views.get(id) ?? this.create(site)
+    if (this.activeId) this.sleeper.touch(this.activeId)
+    this.sleeper.touch(id)
     this.activeId = id
     this.sync()
     if (view.getVisible()) view.webContents.focus()
@@ -71,6 +79,7 @@ export class SiteManager {
   }
 
   home(): void {
+    if (this.activeId) this.sleeper.touch(this.activeId)
     this.activeId = null
     this.sync()
     this.win.webContents.focus()
@@ -99,8 +108,42 @@ export class SiteManager {
     this.sync()
   }
 
+  /** Idle time before a background page is put to sleep; 0 = never. */
+  setSleepAfter(ms: number): void {
+    this.sleepAfterMs = ms
+    clearInterval(this.sleepTimer)
+    if (ms <= 0) return
+    // Check a few times per period so pages sleep close to the limit, at most once a minute.
+    const every = Math.min(60_000, Math.max(500, ms / 4))
+    this.sleepTimer = setInterval(() => this.sleepIdle(), every)
+    this.sleepTimer.unref()
+  }
+
+  /** Loads keep-alive sites in the background so their notifications arrive from the start. */
+  startBackground(): void {
+    for (const site of this.store.list()) if (site.keepAlive) this.ensureLoaded(site.id)
+  }
+
+  /** Loads a site's page without showing it. */
+  ensureLoaded(id: string): void {
+    const site = this.store.get(id)
+    if (site && !this.views.has(id)) this.create(site)
+  }
+
+  /** Closes a background page to free memory. Opening the site loads it again. */
+  sleep(id: string): void {
+    if (id === this.activeId || !this.views.has(id)) return
+    this.close(id)
+    this.sleeper.forget(id)
+    const status: ViewStatus = { id, state: 'sleeping' }
+    this.statuses.set(id, status)
+    this.events.status(status)
+  }
+
   showSiteMenu(id: string): void {
     showSiteMenu(this.win, {
+      canSleep: this.views.has(id) && id !== this.activeId,
+      onSleep: () => this.sleep(id),
       pageUrl: this.views.get(id)?.webContents.getURL() || this.store.get(id)?.url,
       onReload: () => this.reload(id),
       onCommand: (command) => this.events.command(id, command)
@@ -212,6 +255,15 @@ export class SiteManager {
     this.layout()
     void wc.loadURL(site.url).catch(() => undefined) // failures arrive via did-fail-load
     return view
+  }
+
+  private sleepIdle(): void {
+    const due = this.sleeper.due(this.views.keys(), {
+      activeId: this.activeId,
+      afterMs: this.sleepAfterMs,
+      keepAlive: (id) => this.store.get(id)?.keepAlive ?? false
+    })
+    for (const id of due) this.sleep(id)
   }
 
   private configureSession(ses: Session): void {

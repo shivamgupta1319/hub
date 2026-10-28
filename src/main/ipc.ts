@@ -46,6 +46,7 @@ export function registerIpc(
     const result = store.update(parsedId, clean)
     if (result.ok) {
       if (result.value.url !== before) manager()?.navigateHome(parsedId)
+      if (clean['keepAlive'] === true) manager()?.ensureLoaded(parsedId)
       broadcast()
     }
     return result

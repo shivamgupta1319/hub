@@ -10,8 +10,11 @@ const profile = mkdtempSync(join(tmpdir(), 'hub-smoke-'))
 const env = { ...process.env, HUB_USER_DATA: profile }
 delete env.ELECTRON_RUN_AS_NODE
 
-async function launch() {
-  const app = await electron.launch({ args: ['--ozone-platform=x11', '.'], env })
+async function launch(extraEnv = {}) {
+  const app = await electron.launch({
+    args: ['--ozone-platform=x11', '.'],
+    env: { ...env, ...extraEnv }
+  })
   const page = await app.firstWindow()
   await page.waitForSelector('.dashboard')
   return { app, page }
@@ -169,3 +172,51 @@ assert.deepEqual(await visibleSiteUrls(), [])
 await page.keyboard.press('Escape')
 console.log('✓ dialogs hide the site page while open')
 await app.close()
+
+// --- Sleeping: idle pages close; keep-alive sites load at start and never sleep ---
+const { writeFileSync } = await import('node:fs')
+const sleepServer = createServer((req, res) => {
+  res.setHeader('content-type', 'text/html')
+  res.end(`<!doctype html><title>Sleep ${req.url}</title>`)
+})
+await new Promise((resolve) => sleepServer.listen(0, '127.0.0.1', resolve))
+const sbase = `http://127.0.0.1:${sleepServer.address().port}`
+const site = (id, path, keepAlive) => ({
+  id,
+  name: path.slice(1),
+  url: `${sbase}${path}`,
+  keepAlive,
+  notifications: true,
+  createdAt: 1
+})
+const sleepProfile = mkdtempSync(join(tmpdir(), 'hub-smoke-sleep-'))
+writeFileSync(
+  join(sleepProfile, 'sites.json'),
+  JSON.stringify({ version: 1, sites: [site('a', '/chat', true), site('b', '/docs', false)] })
+)
+;({ app, page } = await launch({ HUB_USER_DATA: sleepProfile, HUB_SLEEP_AFTER_MS: '1500' }))
+const loadedUrls = () =>
+  app.evaluate(({ BrowserWindow }) =>
+    BrowserWindow.getAllWindows()[0].contentView.children.map((v) => v.webContents.getURL())
+  )
+await page.waitForSelector('.site-grid')
+await new Promise((r) => setTimeout(r, 1500))
+assert.deepEqual(await loadedUrls(), [`${sbase}/chat`])
+console.log('✓ keep-alive sites load in the background at start')
+
+await page.click('[aria-label="docs"]')
+await new Promise((r) => setTimeout(r, 800))
+await page.click('[aria-label="All sites"]')
+await page.waitForSelector('[aria-label="docs (asleep)"]', { timeout: 10000 })
+assert.deepEqual(await loadedUrls(), [`${sbase}/chat`])
+console.log('✓ an idle site goes to sleep; the keep-alive site stays loaded')
+
+await page.click('[aria-label="docs (asleep)"]')
+await page.waitForSelector('[aria-label="docs"]')
+for (let i = 0; i < 50 && !(await loadedUrls()).includes(`${sbase}/docs`); i++) {
+  await new Promise((r) => setTimeout(r, 100))
+}
+assert.ok((await loadedUrls()).includes(`${sbase}/docs`))
+console.log('✓ opening a sleeping site loads it again')
+await app.close()
+sleepServer.close()

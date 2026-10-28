@@ -22,10 +22,13 @@ export const IPC = {
 /** Actions from a sidebar icon's right-click menu that the UI carries out. */
 export type SiteCommand = 'edit' | 'remove'
 
-/** Load state of a site's page. `error` and `crashed` hide the page so the UI can explain. */
+/**
+ * Load state of a site's page. `error` and `crashed` hide the page so the UI can explain;
+ * `sleeping` means the page was closed to save memory and reloads when opened.
+ */
 export interface ViewStatus {
   id: string
-  state: 'loading' | 'ready' | 'error' | 'crashed'
+  state: 'loading' | 'ready' | 'error' | 'crashed' | 'sleeping'
   message?: string
 }
 

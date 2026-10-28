@@ -61,6 +61,8 @@ export function attachPageMenu(wc: WebContents, win: BrowserWindow): void {
 export function showSiteMenu(
   win: BrowserWindow,
   options: {
+    canSleep: boolean
+    onSleep: () => void
     pageUrl: string | undefined
     onReload: () => void
     onCommand: (command: SiteCommand) => void
@@ -69,6 +71,7 @@ export function showSiteMenu(
   const { pageUrl } = options
   Menu.buildFromTemplate([
     { label: 'Reload', click: options.onReload },
+    { label: 'Sleep now', enabled: options.canSleep, click: options.onSleep },
     {
       label: 'Open in browser',
       enabled: Boolean(pageUrl),

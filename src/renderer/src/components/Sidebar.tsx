@@ -28,14 +28,21 @@ export function Sidebar({ sites, activeId, statuses }: Props): React.JSX.Element
           const state = statuses.get(site.id)?.state
           const active = site.id === activeId
           const broken = state === 'error' || state === 'crashed'
+          const asleep = state === 'sleeping'
           return (
             <li key={site.id}>
               <button
                 type="button"
-                className={`dock-item${active ? ' is-active' : ''}`}
-                aria-label={broken ? `${site.name} (didn’t load)` : site.name}
+                className={`dock-item${active ? ' is-active' : ''}${asleep ? ' is-asleep' : ''}`}
+                aria-label={
+                  broken
+                    ? `${site.name} (didn’t load)`
+                    : asleep
+                      ? `${site.name} (asleep)`
+                      : site.name
+                }
                 aria-current={active ? 'page' : undefined}
-                title={site.name}
+                title={asleep ? `${site.name} — asleep, opens fresh` : site.name}
                 onClick={() => void window.hub.view.open(site.id)}
                 onContextMenu={(e) => {
                   e.preventDefault()

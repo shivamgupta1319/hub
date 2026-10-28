@@ -78,6 +78,10 @@ if (!app.requestSingleInstanceLock()) {
       sitesChanged: () => broadcastSites(store, ui),
       command: (id, command) => ui.send(IPC.siteCommand, id, command)
     })
+    // Lets the smoke test use a short sleep delay instead of the default 30 minutes.
+    const sleepOverride = Number(process.env['HUB_SLEEP_AFTER_MS'])
+    if (sleepOverride > 0) manager.setSleepAfter(sleepOverride)
+    ui.once('did-finish-load', () => manager?.startBackground())
   })
 
   app.on('window-all-closed', () => app.quit())

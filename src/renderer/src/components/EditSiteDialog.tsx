@@ -19,18 +19,21 @@ export function EditSiteDialog({
 }: Props): React.JSX.Element {
   const [name, setName] = useState(site.name)
   const [url, setUrl] = useState(site.url)
+  const [keepAlive, setKeepAlive] = useState(site.keepAlive)
   const [error, setError] = useState<string>()
   const [pending, setPending] = useState(false)
   const [confirmRemove, setConfirmRemove] = useState(startWithRemove)
   const nameId = useId()
   const urlId = useId()
+  const keepId = useId()
+  const keepHintId = useId()
   const errorId = useId()
 
   async function save(e: React.FormEvent): Promise<void> {
     e.preventDefault()
     setPending(true)
     try {
-      const result = await window.hub.sites.update(site.id, { name, url })
+      const result = await window.hub.sites.update(site.id, { name, url, keepAlive })
       if (result.ok) onClose()
       else setError(result.error)
     } catch {
@@ -118,6 +121,22 @@ export function EditSiteDialog({
             {error}
           </p>
         )}
+        <div className="check-field">
+          <input
+            id={keepId}
+            type="checkbox"
+            checked={keepAlive}
+            onChange={(e) => setKeepAlive(e.target.checked)}
+            aria-describedby={keepHintId}
+          />
+          <div>
+            <label htmlFor={keepId}>Keep running in the background</label>
+            <p id={keepHintId} className="field-hint">
+              Never put this site to sleep, and load it when Hub starts. Use it for chat and mail so
+              notifications keep arriving.
+            </p>
+          </div>
+        </div>
         <div className="dialog-actions">
           <button
             type="button"
