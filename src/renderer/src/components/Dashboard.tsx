@@ -1,8 +1,6 @@
-import { useState } from 'react'
 import { displayHost, type Site } from '@shared/site'
-import { useSites } from '../hooks/useSites'
+import type { SitesState } from '../hooks/useSites'
 import { AddSiteBar } from './AddSiteBar'
-import { EditSiteDialog } from './EditSiteDialog'
 import { PencilIcon } from './icons'
 import { SiteAvatar } from './SiteAvatar'
 
@@ -15,11 +13,15 @@ const SUGGESTIONS = [
   { name: 'Notion', url: 'https://www.notion.so/' }
 ]
 
-export function Dashboard(): React.JSX.Element {
-  const { state, reload } = useSites()
-  const [editing, setEditing] = useState<Site>()
-  const [status, setStatus] = useState('')
+interface Props {
+  state: SitesState
+  reload: () => void
+  onEdit: (site: Site) => void
+  /** Announces a result to screen readers. */
+  onStatus: (message: string) => void
+}
 
+export function Dashboard({ state, reload, onEdit, onStatus }: Props): React.JSX.Element {
   const sites = state.status === 'ready' ? state.sites : []
   const suggestions = SUGGESTIONS.filter(
     (s) => !sites.some((site) => displayHost(site.url) === displayHost(s.url))
@@ -27,7 +29,7 @@ export function Dashboard(): React.JSX.Element {
 
   async function addSuggestion(name: string, url: string): Promise<void> {
     const result = await window.hub.sites.add({ name, url })
-    setStatus(result.ok ? `Added ${result.value.name}.` : result.error)
+    onStatus(result.ok ? `Added ${result.value.name}.` : result.error)
   }
 
   return (
@@ -36,11 +38,7 @@ export function Dashboard(): React.JSX.Element {
         <h1>Your sites</h1>
       </header>
 
-      <AddSiteBar onAdded={(name) => setStatus(`Added ${name}.`)} />
-
-      <p className="sr-only" role="status" aria-live="polite">
-        {status}
-      </p>
+      <AddSiteBar onAdded={(name) => onStatus(`Added ${name}.`)} />
 
       {state.status === 'loading' && (
         <ul className="site-grid" aria-label="Loading your sites" aria-busy="true">
@@ -66,17 +64,22 @@ export function Dashboard(): React.JSX.Element {
         <ul className="site-grid" aria-label="Saved sites">
           {sites.map((site) => (
             <li key={site.id} className="tile">
-              <div className="tile-main" title={`${site.name}\n${site.url}`}>
+              <button
+                type="button"
+                className="tile-main"
+                title={`${site.name}\n${site.url}`}
+                onClick={() => void window.hub.view.open(site.id)}
+              >
                 <SiteAvatar site={site} size={56} />
                 <span className="tile-name">{site.name}</span>
                 <span className="tile-host">{displayHost(site.url)}</span>
-              </div>
+              </button>
               <button
                 type="button"
                 className="tile-edit"
                 aria-label={`Edit ${site.name}`}
                 title="Edit"
-                onClick={() => setEditing(site)}
+                onClick={() => onEdit(site)}
               >
                 <PencilIcon />
               </button>
@@ -115,17 +118,6 @@ export function Dashboard(): React.JSX.Element {
             ))}
           </ul>
         </section>
-      )}
-
-      {editing && (
-        <EditSiteDialog
-          site={editing}
-          onClose={() => setEditing(undefined)}
-          onRemoved={(name) => {
-            setEditing(undefined)
-            setStatus(`Removed ${name}.`)
-          }}
-        />
       )}
     </div>
   )

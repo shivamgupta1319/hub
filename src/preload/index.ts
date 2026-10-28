@@ -1,5 +1,5 @@
 import { contextBridge, ipcRenderer, type IpcRendererEvent } from 'electron'
-import { IPC, type HubApi } from '@shared/ipc'
+import { IPC, type HubApi, type ViewStatus } from '@shared/ipc'
 import type { Site } from '@shared/site'
 
 const api: HubApi = {
@@ -14,6 +14,22 @@ const api: HubApi = {
       const handler = (_e: IpcRendererEvent, sites: Site[]): void => listener(sites)
       ipcRenderer.on(IPC.sitesChanged, handler)
       return () => ipcRenderer.off(IPC.sitesChanged, handler)
+    }
+  },
+  view: {
+    open: (id) => ipcRenderer.invoke(IPC.viewOpen, id),
+    home: () => ipcRenderer.invoke(IPC.viewHome),
+    reload: (id) => ipcRenderer.invoke(IPC.viewReload, id),
+    setOverlay: (open) => ipcRenderer.invoke(IPC.viewOverlay, open),
+    onActive: (listener) => {
+      const handler = (_e: IpcRendererEvent, id: string | null): void => listener(id)
+      ipcRenderer.on(IPC.viewActive, handler)
+      return () => ipcRenderer.off(IPC.viewActive, handler)
+    },
+    onStatus: (listener) => {
+      const handler = (_e: IpcRendererEvent, status: ViewStatus): void => listener(status)
+      ipcRenderer.on(IPC.viewStatus, handler)
+      return () => ipcRenderer.off(IPC.viewStatus, handler)
     }
   }
 }

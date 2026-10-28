@@ -1,6 +1,9 @@
 import { join } from 'node:path'
 import { app, BrowserWindow, nativeTheme, shell } from 'electron'
+import { IPC } from '@shared/ipc'
+import { cleanUserAgent } from '@shared/links'
 import { registerIpc } from './ipc'
+import { SiteManager } from './siteManager'
 import { SiteStore } from './store'
 
 // Matches --bg in the renderer so the window doesn't flash white on open.
@@ -45,6 +48,7 @@ const userDataOverride = process.env['HUB_USER_DATA']
 if (userDataOverride) app.setPath('userData', userDataOverride)
 
 let mainWindow: BrowserWindow | undefined
+let manager: SiteManager | undefined
 
 if (!app.requestSingleInstanceLock()) {
   app.quit()
@@ -58,10 +62,17 @@ if (!app.requestSingleInstanceLock()) {
 
   void app.whenReady().then(() => {
     const store = new SiteStore(join(app.getPath('userData'), 'sites.json'))
-    registerIpc(store, () => mainWindow?.webContents)
+    app.userAgentFallback = cleanUserAgent(app.userAgentFallback)
+    registerIpc(
+      store,
+      () => manager,
+      () => mainWindow?.webContents
+    )
     mainWindow = createWindow()
-    app.on('activate', () => {
-      if (BrowserWindow.getAllWindows().length === 0) mainWindow = createWindow()
+    const ui = mainWindow.webContents
+    manager = new SiteManager(mainWindow, store, {
+      active: (id) => ui.send(IPC.viewActive, id),
+      status: (status) => ui.send(IPC.viewStatus, status)
     })
   })
 

@@ -55,8 +55,7 @@ export function normalizeUrl(input: string): Result<string> {
   }
 
   const host = url.hostname
-  const isIp = /^\d{1,3}(\.\d{1,3}){3}$/.test(host) || host.startsWith('[')
-  if (host !== 'localhost' && !isIp && !/\.[a-z]{2,}$/i.test(host)) {
+  if (host !== 'localhost' && !isIpHost(host) && !/\.[a-z]{2,}$/i.test(host)) {
     return { ok: false, error: 'Add the full domain, like github.com.' }
   }
 
@@ -66,6 +65,7 @@ export function normalizeUrl(input: string): Result<string> {
 /** A readable default name from a URL: "mail.google.com" → "Mail Google". */
 export function defaultName(url: string): string {
   const host = new URL(url).hostname.replace(/^www\./, '')
+  if (isIpHost(host)) return host
   const parts = host.split('.')
   const meaningful = parts.length > 2 ? parts.slice(0, -1) : parts.slice(0, 1)
   return meaningful
@@ -77,4 +77,8 @@ export function defaultName(url: string): string {
 /** Hostname without "www.", for showing under a site's name. */
 export function displayHost(url: string): string {
   return new URL(url).hostname.replace(/^www\./, '')
+}
+
+function isIpHost(host: string): boolean {
+  return /^\d{1,3}(\.\d{1,3}){3}$/.test(host) || host.startsWith('[')
 }

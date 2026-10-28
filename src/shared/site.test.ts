@@ -32,7 +32,8 @@ describe('defaultName', () => {
     ['https://www.github.com/', 'Github'],
     ['https://web.whatsapp.com/', 'Web Whatsapp'],
     ['https://notion.so/', 'Notion'],
-    ['http://localhost:3000/', 'Localhost']
+    ['http://localhost:3000/', 'Localhost'],
+    ['http://192.168.1.10:8080/', '192.168.1.10']
   ])('%s → %s', (url, name) => {
     expect(defaultName(url)).toBe(name)
   })

@@ -14,9 +14,12 @@ export function Dialog({ title, onClose, children }: Props): React.JSX.Element {
     const el = ref.current
     if (!el) return
     const opener = document.activeElement instanceof HTMLElement ? document.activeElement : null
+    // Site pages draw above this UI; hide the active one so the dialog is visible.
+    void window.hub.view.setOverlay(true)
     el.showModal()
     return () => {
       el.close()
+      void window.hub.view.setOverlay(false)
       opener?.focus()
     }
   }, [])

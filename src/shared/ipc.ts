@@ -8,8 +8,21 @@ export const IPC = {
   sitesUpdate: 'sites:update',
   sitesRemove: 'sites:remove',
   sitesReorder: 'sites:reorder',
-  sitesChanged: 'sites:changed'
+  sitesChanged: 'sites:changed',
+  viewOpen: 'view:open',
+  viewHome: 'view:home',
+  viewReload: 'view:reload',
+  viewOverlay: 'view:overlay',
+  viewActive: 'view:active',
+  viewStatus: 'view:status'
 } as const
+
+/** Load state of a site's page. `error` and `crashed` hide the page so the UI can explain. */
+export interface ViewStatus {
+  id: string
+  state: 'loading' | 'ready' | 'error' | 'crashed'
+  message?: string
+}
 
 export interface AppInfo {
   version: string
@@ -26,5 +39,17 @@ export interface HubApi {
     reorder(ids: string[]): Promise<void>
     /** Fires with the full list whenever it changes. Returns an unsubscribe function. */
     onChanged(listener: (sites: Site[]) => void): () => void
+  }
+  view: {
+    /** Shows a site's page, loading it on first open. */
+    open(id: string): Promise<void>
+    /** Hides any page and shows the dashboard. */
+    home(): Promise<void>
+    reload(id: string): Promise<void>
+    /** Pages draw above the UI, so dialogs ask for the active page to be hidden while open. */
+    setOverlay(open: boolean): Promise<void>
+    /** Fires with the visible site's id, or null for the dashboard. */
+    onActive(listener: (id: string | null) => void): () => void
+    onStatus(listener: (status: ViewStatus) => void): () => void
   }
 }

@@ -67,3 +67,74 @@ await page.waitForSelector('.site-grid')
 assert.deepEqual(await tiles(), ['GitHub (work)'])
 console.log('✓ sites persist across restarts')
 await app.close()
+
+// --- Site pages, served by a local server so the test needs no internet ---
+const { createServer } = await import('node:http')
+const server = createServer((req, res) => {
+  res.setHeader('content-type', 'text/html')
+  res.end(`<!doctype html><title>Page ${req.url}</title><h1>Hello from ${req.url}</h1>`)
+})
+await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve))
+const base = `http://127.0.0.1:${server.address().port}`
+
+;({ app, page } = await launch())
+for (const path of ['/one', '/two']) {
+  await page.fill('.add-bar input', base + path)
+  await page.click('.add-bar button[type=submit]')
+}
+await page.waitForFunction(
+  () => globalThis.document.querySelectorAll('.site-grid .tile').length === 3
+)
+
+/** Runs JS inside the site page whose URL ends with `path`. */
+const inSite = (path, js) =>
+  app.evaluate(
+    async ({ webContents }, { path, js }) => {
+      const wc = webContents.getAllWebContents().find((w) => w.getURL().endsWith(path))
+      return wc ? wc.executeJavaScript(js) : undefined
+    },
+    { path, js }
+  )
+const visibleSiteUrls = () =>
+  app.evaluate(({ BrowserWindow }) =>
+    BrowserWindow.getAllWindows()[0]
+      .contentView.children.filter((v) => v.getVisible())
+      .map((v) => v.webContents.getURL())
+  )
+
+await page.click(`.tile-main[title$="${base}/one"]`)
+await new Promise((r) => setTimeout(r, 800))
+assert.deepEqual(await visibleSiteUrls(), [`${base}/one`])
+assert.equal(await inSite('/one', 'document.title'), 'Page /one')
+console.log('✓ opens a site in its own page')
+
+const ua = await inSite('/one', 'navigator.userAgent')
+assert.doesNotMatch(ua, /Electron|hub\//)
+console.log('✓ user agent looks like plain Chrome')
+
+await inSite('/one', "document.cookie = 'who=one; path=/'; document.cookie")
+await page.click(`.dock-list button >> nth=2`)
+await new Promise((r) => setTimeout(r, 800))
+assert.deepEqual(await visibleSiteUrls(), [`${base}/two`])
+assert.equal(await inSite('/two', 'document.cookie'), '')
+assert.equal(await inSite('/one', 'document.cookie'), 'who=one')
+console.log('✓ switching via the sidebar shows only that site, and cookies stay separate')
+
+await page.click('[aria-label="All sites"]')
+await new Promise((r) => setTimeout(r, 300))
+assert.deepEqual(await visibleSiteUrls(), [])
+console.log('✓ Home hides every site page')
+
+server.close()
+await page.click(`.dock-list button >> nth=1`)
+await inSite('/one', 'location.reload()').catch(() => {})
+await page.waitForSelector('.stage-problem', { timeout: 10000 })
+assert.deepEqual(await visibleSiteUrls(), [])
+console.log('✓ a site that can’t be reached shows the problem panel instead of a blank page')
+
+await page.click('.stage-problem >> text=Edit address')
+await page.waitForSelector('dialog')
+assert.deepEqual(await visibleSiteUrls(), [])
+await page.keyboard.press('Escape')
+console.log('✓ dialogs hide the site page while open')
+await app.close()
