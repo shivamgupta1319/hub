@@ -23,9 +23,9 @@ desktop app for Ubuntu. Add a site once, then switch between them from the sideb
 
 Download the `.deb` or AppImage from the [latest release](https://github.com/shivamgupta1319/hub/releases/latest), or build them with `npm run dist` (see [Build from source](#build-from-source)). Then:
 
-- **.deb** (Ubuntu, Debian): `sudo apt install ./hub_0.1.0_amd64.deb`, then open Hub from the
+- **.deb** (Ubuntu, Debian): `sudo apt install ./hub_0.1.1_amd64.deb`, then open Hub from the
   app grid.
-- **AppImage**: `chmod +x Hub-0.1.0-x86_64.AppImage && ./Hub-0.1.0-x86_64.AppImage`. On
+- **AppImage**: `chmod +x Hub-0.1.1-x86_64.AppImage && ./Hub-0.1.1-x86_64.AppImage`. On
   Ubuntu 22.04+ AppImages need `sudo apt install libfuse2t64` (or `libfuse2` on 22.04).
 
 On first launch the AppImage adds Hub to your app grid (in `~/.local/share/applications`),

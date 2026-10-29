@@ -1,7 +1,7 @@
 {
   "name": "hub",
   "productName": "Hub",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Keep your websites in one desktop app with a quick-switch sidebar.",
   "main": "./out/main/index.js",
   "author": "shivamgupta1319",
