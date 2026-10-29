@@ -51,3 +51,20 @@ export function GearIcon({ size = 20 }: IconProps): React.JSX.Element {
     </svg>
   )
 }
+
+export function PlusIcon({ size = 22 }: IconProps): React.JSX.Element {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      aria-hidden="true"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+    >
+      <path d="M12 5v14M5 12h14" />
+    </svg>
+  )
+}

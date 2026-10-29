@@ -38,17 +38,17 @@ The tray icon uses AppIndicator, which Ubuntu enables by default. Your sites are
 
 Press <kbd>Alt</kbd> to show the menu with all of them.
 
-| Shortcut                                                   | Action                    |
-| ---------------------------------------------------------- | ------------------------- |
-| <kbd>Ctrl</kbd>+<kbd>1</kbd>…<kbd>9</kbd>                  | Open the first nine sites |
-| <kbd>Ctrl</kbd>+<kbd>Tab</kbd> / +<kbd>Shift</kbd>         | Next / previous site      |
-| <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>K</kbd>              | Go to a site by name      |
-| <kbd>Alt</kbd>+<kbd>Home</kbd>                             | All sites (dashboard)     |
-| <kbd>Alt</kbd>+<kbd>←</kbd> / <kbd>→</kbd>                 | Back / forward            |
-| <kbd>Ctrl</kbd>+<kbd>R</kbd>                               | Reload the site           |
-| <kbd>Ctrl</kbd>+<kbd>+</kbd> / <kbd>-</kbd> / <kbd>0</kbd> | Zoom in / out / reset     |
-| <kbd>Ctrl</kbd>+<kbd>N</kbd>                               | Add a site                |
-| <kbd>Ctrl</kbd>+<kbd>,</kbd>                               | Settings                  |
+| Shortcut                                                      | Action                    |
+| ------------------------------------------------------------- | ------------------------- |
+| <kbd>Ctrl</kbd>+<kbd>1</kbd>…<kbd>9</kbd>                     | Open the first nine sites |
+| <kbd>Ctrl</kbd>+<kbd>Tab</kbd> / +<kbd>Shift</kbd>            | Next / previous site      |
+| <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>K</kbd>                 | Go to a site by name      |
+| <kbd>Alt</kbd>+<kbd>Home</kbd>                                | All sites (dashboard)     |
+| <kbd>Alt</kbd>+<kbd>←</kbd> / <kbd>→</kbd>                    | Back / forward            |
+| <kbd>Ctrl</kbd>+<kbd>R</kbd>                                  | Reload the site           |
+| <kbd>Ctrl</kbd>+<kbd>+</kbd> / <kbd>-</kbd> / <kbd>0</kbd>    | Zoom in / out / reset     |
+| <kbd>Ctrl</kbd>+<kbd>N</kbd> (or <kbd>+</kbd> in the sidebar) | Add a site                |
+| <kbd>Ctrl</kbd>+<kbd>,</kbd>                                  | Settings                  |
 
 <kbd>Ctrl</kbd>+<kbd>K</kbd> is left to the sites themselves (Slack, GitHub and Notion use it).
 

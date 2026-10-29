@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { badgeLabel, type Badge } from '@shared/badges'
 import type { ViewStatus } from '@shared/ipc'
 import type { Site } from '@shared/site'
-import { GearIcon, HomeIcon } from './icons'
+import { GearIcon, HomeIcon, PlusIcon } from './icons'
 import { SiteAvatar } from './SiteAvatar'
 
 interface Props {
@@ -10,6 +10,7 @@ interface Props {
   activeId: string | null
   statuses: ReadonlyMap<string, ViewStatus>
   badges: ReadonlyMap<string, Badge>
+  onAdd: () => void
   onSettings: () => void
 }
 
@@ -34,6 +35,7 @@ export function Sidebar({
   activeId,
   statuses,
   badges,
+  onAdd,
   onSettings
 }: Props): React.JSX.Element {
   // Drag to reorder; the sidebar's right-click menu offers Move up/down for keyboard users.
@@ -129,6 +131,15 @@ export function Sidebar({
           )
         })}
       </ul>
+      <button
+        type="button"
+        className="dock-item dock-add"
+        aria-label="Add a site"
+        title="Add a site (Ctrl+N)"
+        onClick={onAdd}
+      >
+        <PlusIcon />
+      </button>
       <button
         type="button"
         className="dock-item dock-settings"

@@ -350,6 +350,19 @@ await zoomTo('numsub', ['control'], 0.5)
 await zoomTo('0', ['control'], 0)
 console.log('✓ Ctrl with + / = / - / 0, on the main keys or the number pad, zooms the site')
 
+await page.click('[aria-label="Add a site"]')
+await page.waitForSelector('dialog[aria-label="Add a site"]')
+assert.deepEqual(await visibleSiteUrls(), [])
+await page.keyboard.type(`${sbase}/mail`)
+await page.keyboard.press('Enter')
+await page.waitForSelector('dialog', { state: 'detached' })
+await page.waitForSelector('.dock-list li:nth-child(3) button[aria-current="page"]')
+for (let i = 0; i < 50 && (await visibleSiteUrls())[0] !== `${sbase}/mail`; i++) {
+  await new Promise((r) => setTimeout(r, 100))
+}
+assert.deepEqual(await visibleSiteUrls(), [`${sbase}/mail`])
+console.log('✓ the sidebar’s + adds a site without leaving the current one, then opens it')
+
 // --- Settings and close to tray ---
 const { existsSync } = await import('node:fs')
 assert.match(

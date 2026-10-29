@@ -1,11 +1,20 @@
 import { useId, useRef, useState } from 'react'
-import { normalizeUrl } from '@shared/site'
+import { normalizeUrl, type Site } from '@shared/site'
 
 interface Props {
-  onAdded: (name: string) => void
+  onAdded: (site: Site) => void
+  /** The input's id; the dashboard's is the target of Ctrl+N focus and must stay unique. */
+  inputId?: string
+  autoFocus?: boolean
+  label?: string
 }
 
-export function AddSiteBar({ onAdded }: Props): React.JSX.Element {
+export function AddSiteBar({
+  onAdded,
+  inputId = 'add-site-input',
+  autoFocus = false,
+  label = 'Add a website'
+}: Props): React.JSX.Element {
   const [value, setValue] = useState('')
   const [error, setError] = useState<string>()
   const [pending, setPending] = useState(false)
@@ -29,7 +38,7 @@ export function AddSiteBar({ onAdded }: Props): React.JSX.Element {
       }
       setValue('')
       setError(undefined)
-      onAdded(result.value.name)
+      onAdded(result.value)
     } catch {
       setError('Hub couldn’t save the site. Try again.')
     } finally {
@@ -39,13 +48,14 @@ export function AddSiteBar({ onAdded }: Props): React.JSX.Element {
 
   return (
     <form className="add-bar" onSubmit={(e) => void submit(e)} noValidate>
-      <label htmlFor="add-site-input" className="add-label">
-        Add a website
+      <label htmlFor={inputId} className="add-label">
+        {label}
       </label>
       <div className="add-row">
         <input
           ref={input}
-          id="add-site-input"
+          id={inputId}
+          autoFocus={autoFocus}
           className="field"
           type="text"
           inputMode="url"

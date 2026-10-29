@@ -786,6 +786,21 @@ button {
   flex: none;
 }
 
+/* Quieter than a site icon, so it reads as an action rather than another site. */
+.dock-add {
+  flex: none;
+  margin-top: var(--space-1);
+  border: 1.5px dashed var(--dock-item);
+}
+
+.dock-add:hover {
+  border-color: transparent;
+}
+
+.dialog .add-bar {
+  margin-top: var(--space-3);
+}
+
 .dialog-meta {
   align-self: center;
   color: var(--text-muted);

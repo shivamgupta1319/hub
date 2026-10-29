@@ -25,10 +25,7 @@ export function buildAppMenu(
         {
           label: 'Add site…',
           accelerator: 'CmdOrCtrl+N',
-          click: () => {
-            manager.home()
-            sendUi('add-site')
-          }
+          click: () => sendUi('add-site')
         },
         {
           label: 'Go to site…',

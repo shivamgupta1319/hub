@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import type { SiteCommand } from '@shared/ipc'
 import type { Site } from '@shared/site'
+import { AddSiteDialog } from './components/AddSiteDialog'
 import { Dashboard } from './components/Dashboard'
 import { EditSiteDialog } from './components/EditSiteDialog'
 import { QuickSwitcher } from './components/QuickSwitcher'
@@ -18,6 +19,7 @@ export function App(): React.JSX.Element {
 
   const [switcherOpen, setSwitcherOpen] = useState(false)
   const [settingsOpen, setSettingsOpen] = useState(false)
+  const [addOpen, setAddOpen] = useState(false)
 
   useEffect(() => window.hub.view.onSiteCommand((id, command) => setEditing({ id, command })), [])
   useEffect(
@@ -25,10 +27,7 @@ export function App(): React.JSX.Element {
       window.hub.onCommand((command) => {
         if (command === 'quick-switch') setSwitcherOpen(true)
         if (command === 'settings') setSettingsOpen(true)
-        // Main has already switched to the dashboard; focus once it has rendered.
-        if (command === 'add-site') {
-          requestAnimationFrame(() => document.getElementById('add-site-input')?.focus())
-        }
+        if (command === 'add-site') setAddOpen(true)
       }),
     []
   )
@@ -45,6 +44,7 @@ export function App(): React.JSX.Element {
         activeId={activeId}
         statuses={statuses}
         badges={badges}
+        onAdd={() => setAddOpen(true)}
         onSettings={() => setSettingsOpen(true)}
       />
       <main className="content" id="content">
@@ -66,6 +66,15 @@ export function App(): React.JSX.Element {
       <p className="sr-only" role="status" aria-live="polite">
         {status}
       </p>
+      {addOpen && (
+        <AddSiteDialog
+          onClose={() => setAddOpen(false)}
+          onAdded={(name) => {
+            setAddOpen(false)
+            setStatus(`Added ${name}.`)
+          }}
+        />
+      )}
       {settingsOpen && <SettingsDialog onClose={() => setSettingsOpen(false)} />}
       {switcherOpen && <QuickSwitcher sites={sites} onClose={() => setSwitcherOpen(false)} />}
       {editing && editingSite && (

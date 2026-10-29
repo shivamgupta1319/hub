@@ -38,7 +38,7 @@ export function Dashboard({ state, reload, onEdit, onStatus }: Props): React.JSX
         <h1>Your sites</h1>
       </header>
 
-      <AddSiteBar onAdded={(name) => onStatus(`Added ${name}.`)} />
+      <AddSiteBar onAdded={(site) => onStatus(`Added ${site.name}.`)} />
 
       {state.status === 'loading' && (
         <ul className="site-grid" aria-label="Loading your sites" aria-busy="true">
