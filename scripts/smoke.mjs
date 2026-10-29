@@ -407,12 +407,18 @@ console.log(
 
 // --- Settings and close to tray ---
 const { existsSync } = await import('node:fs')
-assert.match(
-  readFileSync(join(xdgData, 'applications', 'hub.desktop'), 'utf8'),
-  /StartupWMClass=hub/
-)
-assert.ok(existsSync(join(xdgData, 'icons/hicolor/scalable/apps/hub.svg')))
-console.log('✓ installs a launcher entry and icon so the dock shows Hub’s icon')
+if (process.env.SMOKE_EXECUTABLE) {
+  // A packaged build outside an AppImage is the .deb, which ships its own launcher entry.
+  assert.equal(existsSync(join(xdgData, 'applications', 'hub.desktop')), false)
+  console.log('✓ the packaged app leaves the launcher entry to the .deb')
+} else {
+  assert.match(
+    readFileSync(join(xdgData, 'applications', 'hub.desktop'), 'utf8'),
+    /StartupWMClass=hub/
+  )
+  assert.ok(existsSync(join(xdgData, 'icons/hicolor/scalable/apps/hub.svg')))
+  console.log('✓ installs a launcher entry and icon so the dock shows Hub’s icon')
+}
 await shortcut('Alt+Home')
 await page.click('[aria-label="Settings"]')
 await page.waitForSelector('dialog[aria-label="Settings"] select')
