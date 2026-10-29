@@ -319,6 +319,37 @@ await shortcut('CmdOrCtrl+1')
 await page.waitForSelector('[aria-label="docs"][aria-current="page"]')
 console.log('✓ dragging an icon reorders the sidebar, and Ctrl+1 follows the new order')
 
+// Real key presses this time (Playwright's skip Electron's input hooks): SiteManager handles the
+// zoom keys itself, not through the menu.
+const docsZoom = () =>
+  app.evaluate(({ webContents }, url) => {
+    return webContents
+      .getAllWebContents()
+      .find((w) => w.getURL() === url)
+      ?.getZoomLevel()
+  }, `${sbase}/docs`)
+const zoomTo = async (keyCode, modifiers, level) => {
+  await app.evaluate(
+    ({ BrowserWindow }, { keyCode, modifiers }) => {
+      const wc = BrowserWindow.getAllWindows()[0].webContents
+      wc.sendInputEvent({ type: 'keyDown', keyCode, modifiers })
+      wc.sendInputEvent({ type: 'keyUp', keyCode, modifiers })
+    },
+    { keyCode, modifiers }
+  )
+  for (let i = 0; i < 30 && (await docsZoom()) !== level; i++) {
+    await new Promise((r) => setTimeout(r, 100))
+  }
+  assert.equal(await docsZoom(), level, `${modifiers.join('+')}+${keyCode}`)
+}
+await zoomTo('=', ['control'], 0.5)
+await zoomTo('Plus', ['control', 'shift'], 1)
+await zoomTo('numadd', ['control'], 1.5)
+await zoomTo('-', ['control'], 1)
+await zoomTo('numsub', ['control'], 0.5)
+await zoomTo('0', ['control'], 0)
+console.log('✓ Ctrl with + / = / - / 0, on the main keys or the number pad, zooms the site')
+
 // --- Settings and close to tray ---
 const { existsSync } = await import('node:fs')
 assert.match(

@@ -46,7 +46,7 @@ Press <kbd>Alt</kbd> to show the menu with all of them.
 | <kbd>Alt</kbd>+<kbd>Home</kbd>                             | All sites (dashboard)     |
 | <kbd>Alt</kbd>+<kbd>←</kbd> / <kbd>→</kbd>                 | Back / forward            |
 | <kbd>Ctrl</kbd>+<kbd>R</kbd>                               | Reload the site           |
-| <kbd>Ctrl</kbd>+<kbd>=</kbd> / <kbd>-</kbd> / <kbd>0</kbd> | Zoom in / out / reset     |
+| <kbd>Ctrl</kbd>+<kbd>+</kbd> / <kbd>-</kbd> / <kbd>0</kbd> | Zoom in / out / reset     |
 | <kbd>Ctrl</kbd>+<kbd>N</kbd>                               | Add a site                |
 | <kbd>Ctrl</kbd>+<kbd>,</kbd>                               | Settings                  |
 

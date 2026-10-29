@@ -4,13 +4,15 @@ import {
   shell,
   WebContentsView,
   type BrowserWindow,
-  type Session
+  type Session,
+  type WebContents
 } from 'electron'
 import { join } from 'node:path'
 import { parseBadge, type Badge } from '@shared/badges'
 import type { SiteCommand, ViewStatus } from '@shared/ipc'
 import { popupDecision } from '@shared/links'
 import type { Site } from '@shared/site'
+import { zoomStep } from '@shared/zoomKeys'
 import { fetchIcon } from './favicon'
 import { attachPageMenu, showSiteMenu } from './menus'
 import { SleepScheduler } from './sleep'
@@ -68,6 +70,7 @@ export class SiteManager {
     win.on('unmaximize', relayout)
     win.on('enter-full-screen', relayout)
     win.on('leave-full-screen', relayout)
+    this.attachZoomKeys(win.webContents)
   }
 
   open(id: string): void {
@@ -180,6 +183,20 @@ export class SiteManager {
     wc.setZoomLevel(Math.max(-3, Math.min(4, level)))
   }
 
+  /**
+   * Handles the zoom keys before the page sees them, so every Chrome variant works (=, +, the
+   * number pad) without a menu item for each; Ctrl + mouse wheel zooms too.
+   */
+  private attachZoomKeys(wc: WebContents): void {
+    wc.on('before-input-event', (event, input) => {
+      const step = zoomStep(input)
+      if (step === null) return
+      event.preventDefault()
+      this.zoom(step)
+    })
+    wc.on('zoom-changed', (_e, direction) => this.zoom(direction === 'in' ? 1 : -1))
+  }
+
   history(step: -1 | 1): void {
     const nav = this.activeContents()?.navigationHistory
     if (step < 0 && nav?.canGoBack()) nav.goBack()
@@ -285,6 +302,7 @@ export class SiteManager {
     })
 
     attachPageMenu(wc, this.win)
+    this.attachZoomKeys(wc)
 
     // Save the icon once per full navigation (e.g. sign-in page → inbox). Updates within a page
     // are usually unread-count variants, which belong in a badge rather than the saved icon.

@@ -51,13 +51,8 @@ export function buildAppMenu(
           click: () => manager.reloadActive(true)
         },
         { type: 'separator' },
-        { label: 'Zoom in', accelerator: 'CmdOrCtrl+=', click: () => manager.zoom(1) },
-        {
-          label: 'Zoom in',
-          accelerator: 'CmdOrCtrl+Plus',
-          visible: false,
-          click: () => manager.zoom(1)
-        },
+        // SiteManager handles the zoom keys itself, so =, + and the number pad all work.
+        { label: 'Zoom in', accelerator: 'CmdOrCtrl+Plus', click: () => manager.zoom(1) },
         { label: 'Zoom out', accelerator: 'CmdOrCtrl+-', click: () => manager.zoom(-1) },
         { label: 'Actual size', accelerator: 'CmdOrCtrl+0', click: () => manager.zoom(0) },
         { type: 'separator' },
