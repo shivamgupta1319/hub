@@ -4,8 +4,8 @@ import type { Site } from '@shared/site'
 import type { SiteManager } from './siteManager'
 
 /**
- * The window menu holds every keyboard shortcut. It stays hidden until Alt is pressed, which also
- * makes the shortcuts discoverable. Rebuilt when sites change so Ctrl+1…9 follow the order.
+ * The window menu holds every keyboard shortcut. It opens from the title bar's ☰ button or a tap
+ * on Alt, which also makes the shortcuts discoverable. Rebuilt when sites change so Ctrl+1…9 follow the order.
  */
 export function buildAppMenu(
   sites: readonly Site[],

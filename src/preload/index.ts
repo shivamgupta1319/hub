@@ -9,6 +9,7 @@ const api: HubApi = {
     get: () => ipcRenderer.invoke(IPC.settingsGet),
     update: (patch) => ipcRenderer.invoke(IPC.settingsUpdate, patch)
   },
+  showAppMenu: (at) => ipcRenderer.invoke(IPC.appMenu, at),
   onCommand: (listener) => {
     const handler = (_e: IpcRendererEvent, command: UiCommand): void => listener(command)
     ipcRenderer.on(IPC.uiCommand, handler)

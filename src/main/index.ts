@@ -1,5 +1,6 @@
 import { join } from 'node:path'
-import { app, BrowserWindow, ipcMain, nativeTheme, shell } from 'electron'
+import { app, BrowserWindow, ipcMain, Menu, nativeTheme, shell } from 'electron'
+import { z } from 'zod'
 import { totalUnread } from '@shared/badges'
 import { IPC } from '@shared/ipc'
 import { cleanUserAgent } from '@shared/links'
@@ -12,13 +13,23 @@ import { HIDDEN_FLAG, setLaunchAtLogin } from './autostart'
 import { syncLauncherEntry } from './desktopIntegration'
 import { registerIpc, registerSettingsIpc } from './ipc'
 import { SettingsStore } from './settings'
-import { SiteManager } from './siteManager'
+import { SiteManager, TITLE_BAR_HEIGHT } from './siteManager'
 import { SiteStore } from './store'
 import { HubTray } from './tray'
 
 // Matches --bg in the renderer so the window doesn't flash white on open.
 const BG_LIGHT = '#f3f5f7'
 const BG_DARK = '#16191d'
+
+/** Hub draws its own dark title bar; these colour the system's window buttons to match it. */
+function titleBarOverlay(): Electron.TitleBarOverlayOptions {
+  return {
+    // --dock-bg and --dock-icon in the renderer.
+    color: nativeTheme.shouldUseDarkColors ? '#0f1215' : '#23282e',
+    symbolColor: '#c6ccd3',
+    height: TITLE_BAR_HEIGHT
+  }
+}
 
 function createWindow(showWhenReady: boolean): BrowserWindow {
   const win = new BrowserWindow({
@@ -29,7 +40,9 @@ function createWindow(showWhenReady: boolean): BrowserWindow {
     show: false,
     title: 'Hub',
     icon,
-    autoHideMenuBar: true,
+    // The menu opens from the title bar's ☰ button (or Alt) instead of a separate menu bar.
+    titleBarStyle: 'hidden',
+    titleBarOverlay: titleBarOverlay(),
     backgroundColor: nativeTheme.shouldUseDarkColors ? BG_DARK : BG_LIGHT,
     webPreferences: {
       preload: join(__dirname, '../preload/index.js'),
@@ -40,6 +53,11 @@ function createWindow(showWhenReady: boolean): BrowserWindow {
   })
 
   if (showWhenReady) win.once('ready-to-show', () => win.show())
+  // Keeps the shortcuts in the menu working while never drawing the menu bar itself.
+  win.setMenuBarVisibility(false)
+  nativeTheme.on('updated', () => {
+    if (!win.isDestroyed()) win.setTitleBarOverlay(titleBarOverlay())
+  })
 
   // The UI never opens windows itself; anything it links to goes to the system browser.
   win.webContents.setWindowOpenHandler(({ url }) => {
@@ -128,7 +146,17 @@ if (!app.requestSingleInstanceLock()) {
     }
     registerIpc(store, () => manager, sitesChanged)
 
+    // Under the title bar's ☰ button, or at the given point when the button asks.
+    const showMenu = (x = 8, y = TITLE_BAR_HEIGHT): void => {
+      Menu.getApplicationMenu()?.popup({ window: win, x, y })
+    }
+    ipcMain.handle(IPC.appMenu, (_e, at: unknown) => {
+      const { x, y } = z.object({ x: z.number(), y: z.number() }).parse(at)
+      showMenu(Math.round(x), Math.round(y))
+    })
+
     manager = new SiteManager(win, store, {
+      menu: () => showMenu(),
       active: (id) => ui.send(IPC.viewActive, id),
       status: (status) => ui.send(IPC.viewStatus, status),
       sitesChanged,

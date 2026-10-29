@@ -12,6 +12,7 @@ import { parseBadge, type Badge } from '@shared/badges'
 import type { SiteCommand, ViewStatus } from '@shared/ipc'
 import { popupDecision } from '@shared/links'
 import type { Site } from '@shared/site'
+import { AltTap } from '@shared/altTap'
 import { zoomStep } from '@shared/zoomKeys'
 import { fetchIcon } from './favicon'
 import { attachPageMenu, showSiteMenu } from './menus'
@@ -20,6 +21,8 @@ import type { SiteStore } from './store'
 
 /** Must match --dock-width in the renderer. */
 export const DOCK_WIDTH = 64
+/** Must match --titlebar-height in the renderer. */
+export const TITLE_BAR_HEIGHT = 36
 
 // Granted without asking: what chat, mail and meeting apps need. Everything else is denied.
 const ALLOWED_PERMISSIONS = new Set([
@@ -38,6 +41,8 @@ export interface ManagerEvents {
   sitesChanged(): void
   command(id: string, command: SiteCommand): void
   badge(id: string, badge: Badge): void
+  /** Alt was tapped on its own: open the window menu. */
+  menu(): void
 }
 
 /** Each site gets its own persistent session, so logins never leak between sites. */
@@ -70,7 +75,7 @@ export class SiteManager {
     win.on('unmaximize', relayout)
     win.on('enter-full-screen', relayout)
     win.on('leave-full-screen', relayout)
-    this.attachZoomKeys(win.webContents)
+    this.attachKeys(win.webContents)
   }
 
   open(id: string): void {
@@ -185,10 +190,13 @@ export class SiteManager {
 
   /**
    * Handles the zoom keys before the page sees them, so every Chrome variant works (=, +, the
-   * number pad) without a menu item for each; Ctrl + mouse wheel zooms too.
+   * number pad) without a menu item for each; Ctrl + mouse wheel zooms too. A tap on Alt opens
+   * the menu, since the title bar has no native menu bar to show.
    */
-  private attachZoomKeys(wc: WebContents): void {
+  private attachKeys(wc: WebContents): void {
+    const altTap = new AltTap()
     wc.on('before-input-event', (event, input) => {
+      if (altTap.feed(input)) this.events.menu()
       const step = zoomStep(input)
       if (step === null) return
       event.preventDefault()
@@ -302,7 +310,7 @@ export class SiteManager {
     })
 
     attachPageMenu(wc, this.win)
-    this.attachZoomKeys(wc)
+    this.attachKeys(wc)
 
     // Save the icon once per full navigation (e.g. sign-in page → inbox). Updates within a page
     // are usually unread-count variants, which belong in a badge rather than the saved icon.
@@ -410,7 +418,12 @@ export class SiteManager {
 
   private layout(): void {
     const { width, height } = this.win.getContentBounds()
-    const bounds = { x: DOCK_WIDTH, y: 0, width: Math.max(0, width - DOCK_WIDTH), height }
+    const bounds = {
+      x: DOCK_WIDTH,
+      y: TITLE_BAR_HEIGHT,
+      width: Math.max(0, width - DOCK_WIDTH),
+      height: Math.max(0, height - TITLE_BAR_HEIGHT)
+    }
     for (const view of this.views.values()) view.setBounds(bounds)
   }
 }

@@ -8,6 +8,7 @@ import { QuickSwitcher } from './components/QuickSwitcher'
 import { SettingsDialog } from './components/SettingsDialog'
 import { Sidebar } from './components/Sidebar'
 import { SiteStage } from './components/SiteStage'
+import { TitleBar } from './components/TitleBar'
 import { useActiveSite } from './hooks/useActiveSite'
 import { useSites } from './hooks/useSites'
 
@@ -39,6 +40,7 @@ export function App(): React.JSX.Element {
 
   return (
     <div className="shell">
+      <TitleBar siteName={activeSite?.name} />
       <Sidebar
         sites={sites}
         activeId={activeId}

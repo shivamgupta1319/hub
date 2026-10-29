@@ -36,7 +36,7 @@ The tray icon uses AppIndicator, which Ubuntu enables by default. Your sites are
 
 ## Keyboard shortcuts
 
-Press <kbd>Alt</kbd> to show the menu with all of them.
+Press <kbd>Alt</kbd> or click ☰ in the title bar to open the menu with all of them.
 
 | Shortcut                                                      | Action                    |
 | ------------------------------------------------------------- | ------------------------- |

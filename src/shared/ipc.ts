@@ -23,6 +23,7 @@ export const IPC = {
   siteFocusRequest: 'site:focus-request',
   viewBadge: 'view:badge',
   uiCommand: 'ui:command',
+  appMenu: 'app:menu',
   settingsGet: 'settings:get',
   settingsUpdate: 'settings:update'
 } as const
@@ -63,6 +64,8 @@ export interface HubApi {
     get(): Promise<Settings>
     update(patch: Partial<Settings>): Promise<Settings>
   }
+  /** Opens the window menu at a point in the window (the title bar's ☰ button). */
+  showAppMenu(at: { x: number; y: number }): Promise<void>
   /** Fires when a keyboard shortcut asks the UI to do something. */
   onCommand(listener: (command: UiCommand) => void): () => void
   view: {

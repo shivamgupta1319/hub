@@ -42,6 +42,8 @@
   --ease: cubic-bezier(0.2, 0, 0, 1);
 
   --dock-width: 64px;
+  /* Must match TITLE_BAR_HEIGHT in the main process. */
+  --titlebar-height: 36px;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -112,7 +114,63 @@ button {
 .shell {
   display: grid;
   grid-template-columns: var(--dock-width) minmax(0, 1fr);
+  grid-template-rows: var(--titlebar-height) minmax(0, 1fr);
   height: 100%;
+}
+
+/* Title bar: one dark piece with the sidebar. The system's window buttons sit over its right end
+   (env(titlebar-area-*) says where they aren't). */
+.titlebar {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-width: 0;
+  padding-left: calc((var(--dock-width) - 32px) / 2);
+  padding-right: calc(100vw - env(titlebar-area-x, 0px) - env(titlebar-area-width, 100vw));
+  background: var(--dock-bg);
+  color: var(--dock-icon);
+  -webkit-app-region: drag;
+  user-select: none;
+}
+
+.titlebar-menu {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 32px;
+  height: 28px;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  -webkit-app-region: no-drag;
+  transition: background-color var(--dur-micro) var(--ease);
+}
+
+.titlebar-menu:hover {
+  background: var(--dock-item);
+  color: var(--dock-active);
+}
+
+.titlebar-menu:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: -2px;
+}
+
+.titlebar-title {
+  min-width: 0;
+  margin: 0;
+  overflow: hidden;
+  font-size: var(--text-sm);
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.titlebar-site {
+  color: var(--dock-active);
+  font-weight: 500;
 }
 
 .content {

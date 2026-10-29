@@ -68,3 +68,20 @@ export function PlusIcon({ size = 22 }: IconProps): React.JSX.Element {
     </svg>
   )
 }
+
+export function MenuIcon({ size = 18 }: IconProps): React.JSX.Element {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      aria-hidden="true"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+    >
+      <path d="M4 7h16M4 12h16M4 17h16" />
+    </svg>
+  )
+}

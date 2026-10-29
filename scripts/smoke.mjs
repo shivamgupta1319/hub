@@ -48,7 +48,9 @@ console.log('✓ quick-adds a suggestion')
 
 await page.fill('.add-bar input', 'github.com')
 await page.click('.add-bar button[type=submit]')
-await page.waitForSelector('.site-grid')
+await page.waitForFunction(
+  () => globalThis.document.querySelectorAll('.site-grid .tile').length === 2
+)
 assert.deepEqual(await tiles(), ['WhatsApp', 'Github'])
 assert.equal(await page.inputValue('.add-bar input'), '')
 console.log('✓ adds a site and clears the field')
@@ -362,6 +364,46 @@ for (let i = 0; i < 50 && (await visibleSiteUrls())[0] !== `${sbase}/mail`; i++)
 }
 assert.deepEqual(await visibleSiteUrls(), [`${sbase}/mail`])
 console.log('✓ the sidebar’s + adds a site without leaving the current one, then opens it')
+
+// The title bar replaces the menu bar: pages start below it, real shortcuts still reach the
+// hidden menu, and ☰ or a tap on Alt opens the menu.
+const siteTop = await app.evaluate(
+  ({ BrowserWindow }) =>
+    BrowserWindow.getAllWindows()[0]
+      .contentView.children.find((v) => v.getVisible())
+      ?.getBounds().y
+)
+assert.equal(siteTop, 36)
+await app.evaluate(({ BrowserWindow }) => {
+  // Typed into the open site's page, where focus is after opening it.
+  const wc = BrowserWindow.getAllWindows()[0].contentView.children.find((v) =>
+    v.getVisible()
+  ).webContents
+  wc.sendInputEvent({ type: 'keyDown', keyCode: 'K', modifiers: ['control', 'shift'] })
+  wc.sendInputEvent({ type: 'keyUp', keyCode: 'K', modifiers: ['control', 'shift'] })
+})
+await page.waitForSelector('dialog[aria-label="Go to site"]')
+await page.keyboard.press('Escape')
+await page.waitForSelector('dialog', { state: 'detached' })
+await app.evaluate(({ Menu }) => {
+  globalThis.__menuOpens = 0
+  Menu.getApplicationMenu().popup = () => globalThis.__menuOpens++
+})
+await page.click('[aria-label="Menu"]')
+await app.evaluate(({ BrowserWindow }) => {
+  const wc = BrowserWindow.getAllWindows()[0].contentView.children.find((v) =>
+    v.getVisible()
+  ).webContents
+  wc.sendInputEvent({ type: 'keyDown', keyCode: 'Alt' })
+  wc.sendInputEvent({ type: 'keyUp', keyCode: 'Alt' })
+})
+for (let i = 0; i < 30 && (await app.evaluate(() => globalThis.__menuOpens)) < 2; i++) {
+  await new Promise((r) => setTimeout(r, 100))
+}
+assert.equal(await app.evaluate(() => globalThis.__menuOpens), 2)
+console.log(
+  '✓ the title bar’s ☰ and a tap on Alt open the menu; shortcuts work without a menu bar'
+)
 
 // --- Settings and close to tray ---
 const { existsSync } = await import('node:fs')
