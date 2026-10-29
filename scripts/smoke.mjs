@@ -136,6 +136,16 @@ const ua = await inSite('/one', 'navigator.userAgent')
 assert.doesNotMatch(ua, /Electron|hub\//)
 console.log('✓ user agent looks like plain Chrome')
 
+assert.equal(await inSite('/one', 'typeof PublicKeyCredential'), 'undefined')
+assert.equal(
+  await inSite(
+    '/one',
+    'navigator.credentials.get({ publicKey: { challenge: new Uint8Array(8) } }).then(() => "ok", (e) => e.name)'
+  ),
+  'NotAllowedError'
+)
+console.log('✓ passkey requests fail at once instead of hanging, so sign-in offers other methods')
+
 await inSite('/one', "document.cookie = 'who=one; path=/'; document.cookie")
 await page.click(`.dock-list button >> nth=2`)
 await new Promise((r) => setTimeout(r, 800))
