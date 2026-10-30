@@ -1,7 +1,7 @@
 {
   "name": "hub",
   "productName": "Hub",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "description": "Keep your websites in one desktop app with a quick-switch sidebar.",
   "main": "./out/main/index.js",
   "author": "shivamgupta1319",
@@ -87,7 +87,12 @@
       "artifactName": "Hub-${version}-${arch}.AppImage"
     },
     "deb": {
-      "artifactName": "hub_${version}_${arch}.deb"
+      "packageName": "hub-desktop",
+      "artifactName": "hub-desktop_${version}_${arch}.deb",
+      "fpm": [
+        "--conflicts=hub (<< 1)",
+        "--replaces=hub (<< 1)"
+      ]
     },
     "publish": null
   }
