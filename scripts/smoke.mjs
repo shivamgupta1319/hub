@@ -458,3 +458,240 @@ console.log('✓ closing the window keeps Hub running in the tray')
 
 await app.close()
 sleepServer.close()
+
+// --- Help me write, against a fake OpenAI-compatible AI router ---
+const aiRequests = []
+const aiServer = createServer((req, res) => {
+  let body = ''
+  req.on('data', (chunk) => (body += chunk))
+  req.on('end', () => {
+    if (req.url === '/page') {
+      res.setHeader('content-type', 'text/html')
+      res.end(
+        '<!doctype html><title>Compose</title><body style="margin:40px">' +
+          '<textarea id="box" style="width:400px;height:80px">teh cat sat</textarea>' +
+          '<p id="para">Some read only words here.</p><textarea id="empty"></textarea>'
+      )
+      return
+    }
+    if (req.headers.authorization !== 'Bearer ar_test_key') {
+      res.statusCode = 401
+      res.end('{"error":{"message":"bad key"}}')
+      return
+    }
+    const parsed = JSON.parse(body)
+    aiRequests.push(parsed)
+    if (!parsed.stream) {
+      res.setHeader('content-type', 'application/json')
+      res.end(JSON.stringify({ choices: [{ message: { role: 'assistant', content: 'OK' } }] }))
+      return
+    }
+    res.setHeader('content-type', 'text/event-stream')
+    const pieces = ['"The cat', ' sat."']
+    const send = (content) =>
+      res.write(`data: ${JSON.stringify({ choices: [{ delta: { content } }] })}\n\n`)
+    send(pieces[0])
+    setTimeout(() => {
+      send(pieces[1])
+      res.end('data: [DONE]\n\n')
+    }, 150)
+  })
+})
+await new Promise((resolve) => aiServer.listen(0, '127.0.0.1', resolve))
+const abase = `http://127.0.0.1:${aiServer.address().port}`
+const aiProfile = mkdtempSync(join(tmpdir(), 'hub-smoke-ai-'))
+writeFileSync(
+  join(aiProfile, 'sites.json'),
+  JSON.stringify({
+    version: 1,
+    sites: [
+      {
+        id: 'w',
+        name: 'compose',
+        url: `${abase}/page`,
+        keepAlive: false,
+        notifications: true,
+        createdAt: 1
+      }
+    ]
+  })
+)
+writeFileSync(join(aiProfile, 'settings.json'), JSON.stringify({ aiBaseUrl: `${abase}/v1` }))
+;({ app, page } = await launch({ HUB_USER_DATA: aiProfile }))
+
+await page.click('[aria-label="Settings"]')
+await page.fill('dialog input[type=password]', 'ar_test_key')
+await page.click('dialog >> text=Save key')
+await page.waitForSelector('dialog >> text=A key is saved')
+await page.click('dialog >> text=Test connection')
+await page.waitForSelector('dialog >> text=Connected')
+await page.click('dialog >> text=Done')
+await page.waitForSelector('dialog', { state: 'detached' })
+assert.ok(!readFileSync(join(aiProfile, 'ai-key.bin')).includes('ar_test_key'))
+assert.ok(!readFileSync(join(aiProfile, 'settings.json'), 'utf8').includes('ar_test_key'))
+console.log('✓ the AI router key saves encrypted (not in settings) and Test connection works')
+
+await page.click('[aria-label="compose"]')
+const inCompose = (js) => inSleepSite('/page', js)
+for (let i = 0; i < 50 && (await inCompose('document.readyState')) !== 'complete'; i++) {
+  await new Promise((r) => setTimeout(r, 100))
+}
+// Selects something in the page, right-clicks it for real, and runs a "Help me write" entry.
+const helpMeWrite = async (selectJs, path) => {
+  const box = await inCompose(`(() => { ${selectJs}; const r = el.getBoundingClientRect();
+    return { x: Math.round(r.x + 20), y: Math.round(r.y + 10) } })()`)
+  await app.evaluate(({ Menu }) => {
+    globalThis.__menu = undefined
+    Menu.prototype.popup = function () {
+      globalThis.__menu = this
+    }
+  })
+  await app.evaluate(({ BrowserWindow }, box) => {
+    const wc = BrowserWindow.getAllWindows()[0].contentView.children.find((v) =>
+      v.getVisible()
+    ).webContents
+    wc.sendInputEvent({ type: 'mouseDown', ...box, button: 'right', clickCount: 1 })
+    wc.sendInputEvent({ type: 'mouseUp', ...box, button: 'right', clickCount: 1 })
+  }, box)
+  for (let i = 0; i < 30 && !(await app.evaluate(() => Boolean(globalThis.__menu))); i++) {
+    await new Promise((r) => setTimeout(r, 100))
+  }
+  return app.evaluate((_e, path) => {
+    let items = globalThis.__menu.items
+    for (const label of path) {
+      const item = items.find((i) => i.label === label)
+      if (!item) return `missing ${label} in ${items.map((i) => i.label).join(', ')}`
+      if (item.submenu) items = item.submenu.items
+      else item.click()
+    }
+    return 'ok'
+  }, path)
+}
+const inWriter = (js) =>
+  app.evaluate(({ webContents }, js) => {
+    const wc = webContents.getAllWebContents().find((w) => w.getURL().endsWith('writer.html'))
+    return wc ? wc.executeJavaScript(js) : undefined
+  }, js)
+const writerShows = async (selector) => {
+  for (let i = 0; i < 50; i++) {
+    if (await inWriter(`Boolean(document.querySelector(${JSON.stringify(selector)}))`)) return
+    await new Promise((r) => setTimeout(r, 100))
+  }
+  throw new Error(`writing panel never showed ${selector}`)
+}
+const writerVisible = () =>
+  app.evaluate(({ BrowserWindow }) =>
+    BrowserWindow.getAllWindows()[0].contentView.children.some(
+      (v) => v.getVisible() && v.webContents.getURL().endsWith('writer.html')
+    )
+  )
+
+assert.equal(
+  await helpMeWrite("const el = document.getElementById('box'); el.focus(); el.select()", [
+    'Help me write',
+    'Fix spelling && grammar'
+  ]),
+  'ok'
+)
+await writerShows('.writer-result:not(.is-streaming)')
+assert.equal(await inWriter("document.querySelector('.writer-result').textContent"), 'The cat sat.')
+const sent = aiRequests.at(-1)
+assert.equal(sent.stream, true)
+assert.match(sent.messages[1].content, /Fix spelling[\s\S]*<text>\nteh cat sat\n<\/text>/)
+assert.match(sent.messages[1].content, /127\.0\.0\.1 — Compose/)
+await inWriter(
+  "[...document.querySelectorAll('button')].find((b) => b.textContent === 'Replace').click()"
+)
+for (
+  let i = 0;
+  i < 30 && (await inCompose("document.getElementById('box').value")) !== 'The cat sat.';
+  i++
+) {
+  await new Promise((r) => setTimeout(r, 100))
+}
+assert.equal(await inCompose("document.getElementById('box').value"), 'The cat sat.')
+assert.equal(await writerVisible(), false)
+console.log(
+  '✓ Help me write fixes a selection in a text box: streams the answer, then Replace puts it back'
+)
+
+assert.equal(
+  await helpMeWrite(
+    "const el = document.getElementById('para'); const s = getSelection(); s.removeAllRanges(); const range = document.createRange(); range.selectNodeContents(el); s.addRange(range)",
+    ['Help me write', 'Change tone', 'Casual']
+  ),
+  'ok'
+)
+await writerShows('.writer-result:not(.is-streaming)')
+assert.equal(
+  await inWriter(
+    "[...document.querySelectorAll('button')].some((b) => b.textContent === 'Replace')"
+  ),
+  false
+)
+assert.match(aiRequests.at(-1).messages[1].content, /casual tone/)
+// The test borrows the real clipboard, so put back what was there.
+const clipboardBefore = await app.evaluate(({ clipboard }) => clipboard.readText())
+await inWriter(
+  "[...document.querySelectorAll('button')].find((b) => b.textContent === 'Copy').click()"
+)
+for (
+  let i = 0;
+  i < 30 && (await app.evaluate(({ clipboard }) => clipboard.readText())) !== 'The cat sat.';
+  i++
+) {
+  await new Promise((r) => setTimeout(r, 100))
+}
+assert.equal(await app.evaluate(({ clipboard }) => clipboard.readText()), 'The cat sat.')
+await inWriter('document.querySelector(\'[aria-label="Close"]\').click()')
+for (let i = 0; i < 30 && (await writerVisible()); i++) await new Promise((r) => setTimeout(r, 100))
+assert.equal(await writerVisible(), false)
+await app.evaluate(({ clipboard }, text) => clipboard.writeText(text), clipboardBefore)
+console.log('✓ on read-only text it offers Copy (no Replace), and the tone menu picks the tone')
+
+assert.equal(
+  await helpMeWrite("const el = document.getElementById('empty'); el.focus()", ['Help me write…']),
+  'ok'
+)
+await writerShows('.writer-prompt')
+await inWriter(`(() => {
+  const el = document.querySelector('.writer-prompt')
+  const set = Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, 'value').set
+  set.call(el, 'say thanks to Sam')
+  el.dispatchEvent(new Event('input', { bubbles: true }))
+})()`)
+await new Promise((r) => setTimeout(r, 200))
+await inWriter("document.querySelector('form').requestSubmit()")
+await writerShows('.writer-result:not(.is-streaming)')
+assert.match(aiRequests.at(-1).messages[1].content, /Write this: say thanks to Sam/)
+await inWriter(
+  "[...document.querySelectorAll('button')].find((b) => b.textContent === 'Insert').click()"
+)
+for (let i = 0; i < 30 && (await inCompose("document.getElementById('empty').value")) === ''; i++) {
+  await new Promise((r) => setTimeout(r, 100))
+}
+assert.equal(await inCompose("document.getElementById('empty').value"), 'The cat sat.')
+console.log('✓ in an empty text box, Help me write… drafts from an instruction and inserts it')
+
+await page.evaluate(() => globalThis.window.hub.ai.setKey('wrong_key'))
+assert.equal(
+  await helpMeWrite("const el = document.getElementById('box'); el.focus(); el.select()", [
+    'Help me write',
+    'Improve writing'
+  ]),
+  'ok'
+)
+await writerShows('.writer-error')
+assert.match(await inWriter("document.querySelector('.writer-error').textContent"), /didn’t accept/)
+assert.ok(
+  await inWriter(
+    "[...document.querySelectorAll('button')].some((b) => b.textContent === 'Open settings')"
+  )
+)
+await inWriter("window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }))")
+for (let i = 0; i < 30 && (await writerVisible()); i++) await new Promise((r) => setTimeout(r, 100))
+assert.equal(await writerVisible(), false)
+console.log('✓ a rejected key shows a clear error with a way to Settings, and Esc closes the panel')
+
+await app.close()
+aiServer.close()
