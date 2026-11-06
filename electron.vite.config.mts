@@ -13,12 +13,24 @@ export default defineConfig({
       isolatedEntries: true,
       externalizeDeps: false,
       rollupOptions: {
-        input: { index: resolve('src/preload/index.ts'), site: resolve('src/preload/site.ts') }
+        input: {
+          index: resolve('src/preload/index.ts'),
+          site: resolve('src/preload/site.ts'),
+          writer: resolve('src/preload/writer.ts')
+        }
       }
     }
   },
   renderer: {
     resolve: { alias: shared },
-    plugins: [react()]
+    plugins: [react()],
+    build: {
+      rollupOptions: {
+        input: {
+          index: resolve('src/renderer/index.html'),
+          writer: resolve('src/renderer/writer.html')
+        }
+      }
+    }
   }
 })

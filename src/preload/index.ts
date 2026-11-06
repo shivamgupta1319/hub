@@ -9,6 +9,11 @@ const api: HubApi = {
     get: () => ipcRenderer.invoke(IPC.settingsGet),
     update: (patch) => ipcRenderer.invoke(IPC.settingsUpdate, patch)
   },
+  ai: {
+    keyStatus: () => ipcRenderer.invoke(IPC.aiKeyStatus),
+    setKey: (key) => ipcRenderer.invoke(IPC.aiKeySet, key),
+    test: () => ipcRenderer.invoke(IPC.aiTest)
+  },
   showAppMenu: (at) => ipcRenderer.invoke(IPC.appMenu, at),
   onCommand: (listener) => {
     const handler = (_e: IpcRendererEvent, command: UiCommand): void => listener(command)

@@ -3,15 +3,66 @@ import {
   Menu,
   shell,
   type BrowserWindow,
+  type ContextMenuParams,
   type MenuItemConstructorOptions,
   type WebContents
 } from 'electron'
 import type { SiteCommand } from '@shared/ipc'
+import { toneLabel, TONES, type WritingAction } from '@shared/writing'
 
-/** Right-click menu inside a site's page: links, editing, spelling and navigation. */
-export function attachPageMenu(wc: WebContents, win: BrowserWindow): void {
+/** How the page menu reaches "Help me write". */
+export interface WritingMenu {
+  /** `off` hides it; `setup` shows an entry that opens Settings to add a key. */
+  status(): 'ready' | 'setup' | 'off'
+  /** `null` asks for an instruction first. */
+  open(wc: WebContents, params: ContextMenuParams, action: WritingAction | null): void
+  setup(): void
+}
+
+function writingItems(
+  writing: WritingMenu,
+  wc: WebContents,
+  params: ContextMenuParams
+): MenuItemConstructorOptions[] {
+  const hasText = params.selectionText.trim() !== ''
+  if (!hasText && !params.isEditable) return []
+  const status = writing.status()
+  if (status === 'off') return []
+  if (status === 'setup') {
+    return [
+      { label: 'Help me write (set up)…', click: () => writing.setup() },
+      { type: 'separator' }
+    ]
+  }
+  const run = (action: WritingAction | null) => () => writing.open(wc, params, action)
+  if (!hasText) return [{ label: 'Help me write…', click: run(null) }, { type: 'separator' }]
+  return [
+    {
+      label: 'Help me write',
+      submenu: [
+        { label: 'Fix spelling && grammar', click: run({ kind: 'fix' }) },
+        { label: 'Improve writing', click: run({ kind: 'improve' }) },
+        { label: 'Make shorter', click: run({ kind: 'shorter' }) },
+        { label: 'Make longer', click: run({ kind: 'longer' }) },
+        {
+          label: 'Change tone',
+          submenu: TONES.map((tone) => ({
+            label: toneLabel(tone),
+            click: run({ kind: 'tone', tone })
+          }))
+        },
+        { type: 'separator' },
+        { label: 'Custom…', click: run(null) }
+      ]
+    },
+    { type: 'separator' }
+  ]
+}
+
+/** Right-click menu inside a site's page: writing help, links, editing, spelling, navigation. */
+export function attachPageMenu(wc: WebContents, win: BrowserWindow, writing?: WritingMenu): void {
   wc.on('context-menu', (_e, params) => {
-    const items: MenuItemConstructorOptions[] = []
+    const items: MenuItemConstructorOptions[] = writing ? writingItems(writing, wc, params) : []
 
     if (params.misspelledWord) {
       for (const word of params.dictionarySuggestions.slice(0, 4)) {

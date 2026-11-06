@@ -10,7 +10,13 @@ export const settingsSchema = z.object({
   /** Closing the window hides Hub to the tray instead of quitting. */
   closeToTray: z.boolean(),
   /** Start Hub (in the tray) when you log in. */
-  launchAtLogin: z.boolean()
+  launchAtLogin: z.boolean(),
+  /** "Help me write" in the right-click menu of sites. */
+  writingHelp: z.boolean(),
+  /** OpenAI-compatible base URL of the AI router. The key is stored apart, encrypted. */
+  aiBaseUrl: z.url({ protocol: /^https?$/ }).max(500),
+  /** Router model directive: `auto` for the best answer, `task:cheap_fast` for speed. */
+  aiModel: z.string().trim().min(1).max(200)
 })
 
 export type Settings = z.infer<typeof settingsSchema>
@@ -18,8 +24,16 @@ export type Settings = z.infer<typeof settingsSchema>
 export const DEFAULT_SETTINGS: Settings = {
   sleepAfterMinutes: 30,
   closeToTray: true,
-  launchAtLogin: false
+  launchAtLogin: false,
+  writingHelp: true,
+  aiBaseUrl: 'https://ai.pseo.cloud/v1',
+  aiModel: 'auto'
 }
+
+export const AI_MODEL_CHOICES: readonly { model: string; label: string }[] = [
+  { model: 'auto', label: 'Best answer' },
+  { model: 'task:cheap_fast', label: 'Fastest' }
+]
 
 export const SLEEP_CHOICES: readonly { minutes: number; label: string }[] = [
   { minutes: 5, label: '5 minutes' },

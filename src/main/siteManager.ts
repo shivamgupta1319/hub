@@ -15,7 +15,7 @@ import type { Site } from '@shared/site'
 import { AltTap } from '@shared/altTap'
 import { zoomStep } from '@shared/zoomKeys'
 import { fetchIcon } from './favicon'
-import { attachPageMenu, showSiteMenu } from './menus'
+import { attachPageMenu, showSiteMenu, type WritingMenu } from './menus'
 import { SleepScheduler } from './sleep'
 import type { SiteStore } from './store'
 
@@ -65,7 +65,9 @@ export class SiteManager {
   constructor(
     private readonly win: BrowserWindow,
     private readonly store: SiteStore,
-    private readonly events: ManagerEvents
+    private readonly events: ManagerEvents,
+    /** "Help me write" for site pages; it closes whenever the visible page changes. */
+    private readonly writing?: WritingMenu & { close(): void }
   ) {
     this.setSleepAfter(this.sleepAfterMs)
 
@@ -82,6 +84,7 @@ export class SiteManager {
     const site = this.store.get(id)
     if (!site) return
     const view = this.views.get(id) ?? this.create(site)
+    if (id !== this.activeId) this.writing?.close()
     if (this.activeId) this.sleeper.touch(this.activeId)
     this.sleeper.touch(id)
     this.activeId = id
@@ -91,6 +94,7 @@ export class SiteManager {
   }
 
   home(): void {
+    this.writing?.close()
     if (this.activeId) this.sleeper.touch(this.activeId)
     this.activeId = null
     this.sync()
@@ -116,6 +120,8 @@ export class SiteManager {
   }
 
   setOverlay(open: boolean): void {
+    // A dialog in the UI would sit under the writing panel, so the panel gives way.
+    if (open) this.writing?.close()
     this.overlay = open
     this.sync()
   }
@@ -309,7 +315,7 @@ export class SiteManager {
       })
     })
 
-    attachPageMenu(wc, this.win)
+    attachPageMenu(wc, this.win, this.writing)
     this.attachKeys(wc)
 
     // Save the icon once per full navigation (e.g. sign-in page → inbox). Updates within a page

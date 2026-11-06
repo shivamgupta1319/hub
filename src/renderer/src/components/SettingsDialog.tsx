@@ -1,6 +1,7 @@
 import { useEffect, useId, useState } from 'react'
 import { SLEEP_CHOICES, type Settings } from '@shared/settings'
 import { Dialog } from './Dialog'
+import { WritingSettings } from './WritingSettings'
 
 interface Props {
   onClose: () => void
@@ -88,6 +89,7 @@ export function SettingsDialog({ onClose }: Props): React.JSX.Element {
               </p>
             </div>
           </div>
+          <WritingSettings settings={settings} change={change} />
         </div>
       )}
       {error && (

@@ -5,17 +5,20 @@ import { totalUnread } from '@shared/badges'
 import { IPC } from '@shared/ipc'
 import { cleanUserAgent } from '@shared/links'
 import type { Settings } from '@shared/settings'
+import type { WritingAction, WritingContext } from '@shared/writing'
 import icon from '../../resources/icon.png?asset'
 import iconSvg from '../../resources/icon.svg?asset'
 import trayIcon from '../../resources/tray.png?asset'
+import { AiKeyStore } from './aiKey'
 import { buildAppMenu } from './appMenu'
 import { HIDDEN_FLAG, setLaunchAtLogin } from './autostart'
 import { syncLauncherEntry } from './desktopIntegration'
-import { registerIpc, registerSettingsIpc } from './ipc'
+import { registerAiIpc, registerIpc, registerSettingsIpc } from './ipc'
 import { SettingsStore } from './settings'
-import { SiteManager, TITLE_BAR_HEIGHT } from './siteManager'
+import { DOCK_WIDTH, SiteManager, TITLE_BAR_HEIGHT } from './siteManager'
 import { SiteStore } from './store'
 import { HubTray } from './tray'
+import { WritingPanel } from './writer'
 
 // Matches --bg in the renderer so the window doesn't flash white on open.
 const BG_LIGHT = '#f3f5f7'
@@ -70,6 +73,41 @@ function createWindow(showWhenReady: boolean): BrowserWindow {
   else void win.loadFile(join(__dirname, '../renderer/index.html'))
 
   return win
+}
+
+/** Where the text is being written (site and page title), sent along so the wording fits. */
+function writingContext(wc: Electron.WebContents, fieldText: string | undefined): WritingContext {
+  const context: WritingContext = { pageTitle: wc.getTitle() }
+  try {
+    context.site = new URL(wc.getURL()).hostname
+  } catch {
+    // an odd URL just means no site name in the prompt
+  }
+  if (fieldText) context.fieldText = fieldText
+  return context
+}
+
+/** When drafting into a text box, what it already holds; read from the page's isolated world. */
+async function readFieldText(
+  wc: Electron.WebContents,
+  params: Electron.ContextMenuParams
+): Promise<string | undefined> {
+  if (!params.isEditable || params.selectionText.trim()) return undefined
+  try {
+    const text: unknown = await wc.executeJavaScriptInIsolatedWorld(1999, [
+      {
+        code: `(() => {
+          const el = document.activeElement
+          if (!el) return ''
+          const value = 'value' in el ? el.value : el.innerText
+          return typeof value === 'string' ? value.slice(0, 8000) : ''
+        })()`
+      }
+    ])
+    return typeof text === 'string' && text.trim() ? text : undefined
+  } catch {
+    return undefined
+  }
 }
 
 /** How to start this exact build again: the AppImage, the installed binary, or dev Electron. */
@@ -155,19 +193,75 @@ if (!app.requestSingleInstanceLock()) {
       showMenu(Math.round(x), Math.round(y))
     })
 
-    manager = new SiteManager(win, store, {
-      menu: () => showMenu(),
-      active: (id) => ui.send(IPC.viewActive, id),
-      status: (status) => ui.send(IPC.viewStatus, status),
-      sitesChanged,
-      command: (id, command) => ui.send(IPC.siteCommand, id, command),
-      badge: (id, badge) => {
-        ui.send(IPC.viewBadge, id, badge)
-        // Shows the total on the Ubuntu dock icon where the launcher supports it.
-        app.setBadgeCount(totalUnread(manager?.allBadges() ?? []))
-        updateTray()
-      }
+    // "Help me write": the router key lives encrypted next to the settings, never in them.
+    const aiKey = new AiKeyStore(join(userData, 'ai-key.bin'))
+    registerAiIpc(aiKey, settings)
+    const openSettings = (): void => {
+      showWindow()
+      ui.send(IPC.uiCommand, 'settings')
+    }
+    const writer = new WritingPanel(win, {
+      config: async () => {
+        const key = await aiKey.get()
+        const { aiBaseUrl, aiModel } = settings.get()
+        return key ? { baseUrl: aiBaseUrl, model: aiModel, key } : undefined
+      },
+      area: () => {
+        const { width, height } = win.getContentBounds()
+        return {
+          x: DOCK_WIDTH,
+          y: TITLE_BAR_HEIGHT,
+          width: Math.max(0, width - DOCK_WIDTH),
+          height: Math.max(0, height - TITLE_BAR_HEIGHT)
+        }
+      },
+      openSettings
     })
+    const writing = {
+      status: (): 'ready' | 'setup' | 'off' => {
+        if (!settings.get().writingHelp) return 'off'
+        return aiKey.has() ? 'ready' : 'setup'
+      },
+      setup: openSettings,
+      close: () => writer.close(),
+      open: (
+        wc: Electron.WebContents,
+        params: Electron.ContextMenuParams,
+        action: WritingAction | null
+      ) => {
+        void readFieldText(wc, params).then((fieldText) =>
+          writer.open(
+            {
+              wc,
+              text: params.selectionText,
+              editable: params.isEditable,
+              context: writingContext(wc, fieldText),
+              anchor: { x: DOCK_WIDTH + params.x, y: TITLE_BAR_HEIGHT + params.y }
+            },
+            action
+          )
+        )
+      }
+    }
+
+    manager = new SiteManager(
+      win,
+      store,
+      {
+        menu: () => showMenu(),
+        active: (id) => ui.send(IPC.viewActive, id),
+        status: (status) => ui.send(IPC.viewStatus, status),
+        sitesChanged,
+        command: (id, command) => ui.send(IPC.siteCommand, id, command),
+        badge: (id, badge) => {
+          ui.send(IPC.viewBadge, id, badge)
+          // Shows the total on the Ubuntu dock icon where the launcher supports it.
+          app.setBadgeCount(totalUnread(manager?.allBadges() ?? []))
+          updateTray()
+        }
+      },
+      writing
+    )
 
     const applySettings = (value: Settings): void => {
       manager?.setSleepAfter(value.sleepAfterMinutes * 60_000)

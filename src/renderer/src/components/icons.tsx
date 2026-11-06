@@ -85,3 +85,62 @@ export function MenuIcon({ size = 18 }: IconProps): React.JSX.Element {
     </svg>
   )
 }
+
+function Stroke({
+  size,
+  children
+}: {
+  size: number
+  children: React.ReactNode
+}): React.JSX.Element {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      aria-hidden="true"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      {children}
+    </svg>
+  )
+}
+
+/** A pen with a small spark: writing help. */
+export function PenIcon({ size = 18 }: IconProps): React.JSX.Element {
+  return (
+    <Stroke size={size}>
+      <path d="M4 20h4L18.5 9.5a2.1 2.1 0 0 0-3-3L5 17v3" />
+      <path d="M19 2.5v3M17.5 4h3" />
+    </Stroke>
+  )
+}
+
+export function CloseIcon({ size = 18 }: IconProps): React.JSX.Element {
+  return (
+    <Stroke size={size}>
+      <path d="M6 6l12 12M18 6 6 18" />
+    </Stroke>
+  )
+}
+
+export function RetryIcon({ size = 18 }: IconProps): React.JSX.Element {
+  return (
+    <Stroke size={size}>
+      <path d="M20 11a8 8 0 1 0-2.3 5.7" />
+      <path d="M20 4v7h-7" />
+    </Stroke>
+  )
+}
+
+export function SendIcon({ size = 18 }: IconProps): React.JSX.Element {
+  return (
+    <Stroke size={size}>
+      <path d="M5 12h13M13 6l6 6-6 6" />
+    </Stroke>
+  )
+}

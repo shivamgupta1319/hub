@@ -1,0 +1,220 @@
+/* "Help me write" panel. It's its own page in a view over the site, so the whole page is the
+   panel: a raised surface with a hairline border (the view's corners are rounded by main). */
+.writer-body {
+  background: var(--surface);
+  overflow-y: auto;
+  /* Base text is a touch smaller than the app's: this sits over someone else's page. */
+  font-size: 0.9375rem;
+}
+
+.writer-body #root {
+  height: auto;
+}
+
+.writer {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  /* No min-height: main sizes the view to this element's natural height, so filling the
+     viewport here would only ever let it grow. */
+  padding: 0 var(--space-4) var(--space-3);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+}
+
+.writer.is-sheet {
+  border-width: 1px 0 0;
+  border-radius: 12px 12px 0 0;
+  padding-bottom: max(var(--space-3), env(safe-area-inset-bottom));
+}
+
+.writer-head {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin: 0 calc(-1 * var(--space-4));
+  padding: var(--space-2) var(--space-2) var(--space-2) var(--space-4);
+  border-bottom: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--accent);
+}
+
+.writer-title {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  color: var(--text);
+  font-size: var(--text-sm);
+  font-weight: 600;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.writer-icon-btn {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 44px;
+  height: 44px;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: background var(--dur-micro) var(--ease);
+}
+
+.writer-icon-btn:hover:not(:disabled) {
+  background: var(--bg);
+  color: var(--text);
+}
+
+.writer-icon-btn:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.writer-section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.writer-label {
+  font-size: var(--text-sm);
+  font-weight: 500;
+}
+
+.writer-prompt {
+  min-height: 64px;
+  padding: var(--space-2) var(--space-3);
+  resize: vertical;
+  line-height: 1.45;
+}
+
+.writer-result {
+  padding: var(--space-3);
+  border-radius: var(--radius-sm);
+  background: var(--bg);
+  line-height: 1.55;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.writer-result:focus-visible {
+  outline-offset: 0;
+}
+
+/* A soft caret at the end while the answer is still arriving. */
+.writer-result.is-streaming::after {
+  content: '';
+  display: inline-block;
+  width: 0.5em;
+  height: 1em;
+  margin-left: 2px;
+  vertical-align: -0.15em;
+  border-radius: 2px;
+  background: var(--accent);
+  animation: writer-blink 1s steps(2, start) infinite;
+}
+
+@keyframes writer-blink {
+  to {
+    visibility: hidden;
+  }
+}
+
+.writer-skeleton {
+  display: grid;
+  gap: var(--space-2);
+  padding: var(--space-3);
+  border-radius: var(--radius-sm);
+  background: var(--bg);
+}
+
+.writer-skeleton span {
+  height: 0.75rem;
+  border-radius: 4px;
+  background: var(--border);
+  animation: writer-pulse 1.2s var(--ease) infinite alternate;
+}
+
+.writer-skeleton span:nth-child(2) {
+  width: 92%;
+  animation-delay: 150ms;
+}
+
+.writer-skeleton span:nth-child(3) {
+  width: 60%;
+  animation-delay: 300ms;
+}
+
+@keyframes writer-pulse {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0.45;
+  }
+}
+
+.writer-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.writer-status {
+  color: var(--text-muted);
+  font-size: var(--text-sm);
+}
+
+.writer-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.writer-chip {
+  min-height: 32px;
+  padding: 0 var(--space-3);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface);
+  font-size: var(--text-sm);
+  cursor: pointer;
+  transition:
+    background var(--dur-micro) var(--ease),
+    border-color var(--dur-micro) var(--ease);
+}
+
+.writer-chip:hover {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+
+.writer-refine {
+  display: flex;
+  gap: var(--space-1);
+  align-items: center;
+}
+
+.writer-refine .field {
+  flex: 1;
+}
+
+.writer-error {
+  color: var(--danger);
+}
+
+.writer-note {
+  color: var(--text-muted);
+  font-size: 0.75rem;
+}

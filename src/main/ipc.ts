@@ -1,7 +1,10 @@
 import { app, ipcMain } from 'electron'
 import { z } from 'zod'
-import { IPC, type AppInfo } from '@shared/ipc'
+import { IPC, type AiKeyStatus, type AppInfo } from '@shared/ipc'
 import { settingsSchema, type Settings } from '@shared/settings'
+import type { Result } from '@shared/site'
+import { AiError, testConnection } from './ai'
+import type { AiKeyStore } from './aiKey'
 import type { SettingsStore } from './settings'
 import type { SiteManager } from './siteManager'
 import type { SiteStore } from './store'
@@ -83,5 +86,41 @@ export function registerSettingsIpc(
     const next = settings.update(clean)
     apply(next)
     return next
+  })
+}
+
+export function registerAiIpc(keys: AiKeyStore, settings: SettingsStore): void {
+  const status = async (): Promise<AiKeyStatus> => ({
+    saved: keys.has(),
+    canStore: await keys.canStore()
+  })
+  ipcMain.handle(IPC.aiKeyStatus, status)
+
+  ipcMain.handle(IPC.aiKeySet, async (_e, key: unknown): Promise<Result<AiKeyStatus>> => {
+    const parsed = z.string().trim().min(1).max(500).nullable().parse(key)
+    if (parsed === null) {
+      keys.clear()
+      return { ok: true, value: await status() }
+    }
+    if (!(await keys.canStore())) {
+      return {
+        ok: false,
+        error: 'Hub needs your system keyring to store the key safely, and none is available.'
+      }
+    }
+    await keys.set(parsed)
+    return { ok: true, value: await status() }
+  })
+
+  ipcMain.handle(IPC.aiTest, async (): Promise<Result<true>> => {
+    const key = await keys.get()
+    if (!key) return { ok: false, error: 'Save a key first.' }
+    const { aiBaseUrl, aiModel } = settings.get()
+    try {
+      await testConnection({ baseUrl: aiBaseUrl, model: aiModel, key })
+      return { ok: true, value: true }
+    } catch (err) {
+      return { ok: false, error: err instanceof AiError ? err.message : 'The test failed.' }
+    }
   })
 }

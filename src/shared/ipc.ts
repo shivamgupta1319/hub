@@ -1,6 +1,7 @@
 import type { Badge } from './badges'
 import type { Settings } from './settings'
 import type { NewSite, Result, Site, SitePatch } from './site'
+import type { WritingAction } from './writing'
 
 /** Channel names shared by main, preload and renderer. */
 export const IPC = {
@@ -25,8 +26,60 @@ export const IPC = {
   uiCommand: 'ui:command',
   appMenu: 'app:menu',
   settingsGet: 'settings:get',
-  settingsUpdate: 'settings:update'
+  settingsUpdate: 'settings:update',
+  aiKeyStatus: 'ai:key-status',
+  aiKeySet: 'ai:key-set',
+  aiTest: 'ai:test',
+  /** Main → writing panel: the panel's whole state, sent on every change. */
+  writerState: 'writer:state',
+  /** Writing panel → main. */
+  writerRun: 'writer:run',
+  writerApply: 'writer:apply',
+  writerCopy: 'writer:copy',
+  writerStop: 'writer:stop',
+  writerClose: 'writer:close',
+  writerSettings: 'writer:settings',
+  writerResize: 'writer:resize'
 } as const
+
+export interface AiKeyStatus {
+  saved: boolean
+  /** False without a system keyring; Hub then won't store a key. */
+  canStore: boolean
+}
+
+/**
+ * What the writing panel shows. `rewrite` works on selected text; `draft` writes into an empty
+ * text box. `ask` waits for the person to type an instruction.
+ */
+export interface WriterState {
+  mode: 'rewrite' | 'draft'
+  phase: 'ask' | 'working' | 'done' | 'error'
+  label: string
+  result: string
+  error?: string
+  /** The router rejected the key or none is saved: offer Settings. */
+  needsSettings: boolean
+  /** The text came from an editable field, so the answer can be put back. */
+  canApply: boolean
+  /** Laid out as a full-width bottom sheet (narrow windows). */
+  sheet: boolean
+}
+
+export type WriterRun = { action: WritingAction } | { followUp: string } | { retry: true }
+
+/** The API the writing panel's preload exposes on `window.writer`. */
+export interface WriterApi {
+  onState(listener: (state: WriterState) => void): () => void
+  run(request: WriterRun): void
+  apply(): void
+  copy(): void
+  stop(): void
+  close(): void
+  openSettings(): void
+  /** Reports the panel content's natural height, so main can size the view to fit. */
+  resize(height: number): void
+}
 
 /** Requests from the window menu (keyboard shortcuts) that the UI carries out. */
 export type UiCommand = 'quick-switch' | 'add-site' | 'settings'
@@ -63,6 +116,13 @@ export interface HubApi {
   settings: {
     get(): Promise<Settings>
     update(patch: Partial<Settings>): Promise<Settings>
+  }
+  ai: {
+    keyStatus(): Promise<AiKeyStatus>
+    /** Saves the router key encrypted, or removes it with null. */
+    setKey(key: string | null): Promise<Result<AiKeyStatus>>
+    /** Sends one tiny request with the saved address, key and model. */
+    test(): Promise<Result<true>>
   }
   /** Opens the window menu at a point in the window (the title bar's ☰ button). */
   showAppMenu(at: { x: number; y: number }): Promise<void>

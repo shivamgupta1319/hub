@@ -23,6 +23,8 @@ describe('SettingsStore', () => {
     const path = file()
     const store = new SettingsStore(path)
     expect(() => store.update({ sleepAfterMinutes: -5 })).toThrow()
+    expect(() => store.update({ aiBaseUrl: 'file:///etc/passwd' })).toThrow()
+    expect(() => store.update({ aiModel: '  ' })).toThrow()
     expect(store.get()).toEqual(DEFAULT_SETTINGS)
   })
 

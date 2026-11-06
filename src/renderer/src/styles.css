@@ -868,3 +868,41 @@ button {
 select.field {
   appearance: auto;
 }
+
+/* Settings groups */
+.settings-group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  min-width: 0;
+  margin: var(--space-2) 0 0;
+  padding: var(--space-4) 0 0;
+  border: 0;
+  border-top: 1px solid var(--border);
+}
+
+.settings-legend {
+  float: left;
+  width: 100%;
+  margin-bottom: var(--space-1);
+  padding: 0;
+  font-weight: 600;
+}
+
+.settings-test {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.settings-test-result {
+  flex-basis: 100%;
+  min-height: 1.5em;
+  font-size: var(--text-sm);
+  overflow-wrap: anywhere;
+}
+
+.text-danger {
+  color: var(--danger);
+}
