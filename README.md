@@ -52,6 +52,23 @@ Press <kbd>Alt</kbd> or click ☰ in the title bar to open the menu with all of 
 
 <kbd>Ctrl</kbd>+<kbd>K</kbd> is left to the sites themselves (Slack, GitHub and Notion use it).
 
+## Help me write
+
+Select text in any site, right-click it and choose **Help me write** to fix spelling and
+grammar, improve it, make it shorter or longer, or change its tone (professional, formal,
+friendly, casual, direct, confident). In an empty text box, **Help me write…** drafts new text
+from an instruction. The answer streams into a small panel next to the text. From there you can
+**Replace** or **Insert** it, copy it, try again, or refine it further.
+
+It uses an OpenAI-compatible [AI router](https://ai.pseo.cloud). To set it up:
+
+1. Mint a key for Hub on the router: `docker compose exec api node dist/auth/mint-key.js mint hub`.
+2. In Hub, open **Settings → Writing help**, paste the key, and click **Test connection**.
+
+The key is encrypted with your system keyring and never stored in Hub's settings file. Hub
+only sends the text you selected, along with the site and page title so the wording fits. The
+router passes it to its AI providers.
+
 ## Build from source
 
 Requires Node.js 22+ on Linux.
